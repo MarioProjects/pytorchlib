@@ -20,7 +20,34 @@ def loss_fn_kd_kldivloss(outputs, teacher_outputs, labels, temperature, alpha=0.
 
     return KD_loss
 
-def evaluate_models(models, data):
+
+def train_simple_model(model, data, target, loss, optimizer, out_pos=-1):
+    # Losses: https://pytorch.org/docs/stable/nn.html
+    model.train()
+    optimizer.zero_grad()
+
+    if model.net_type == "fully-connected":
+        model_out = model.forward(Variable(data.view(data.shape[0], -1)))
+    elif model.net_type == "convolutional":
+        model_out = model.forward(Variable(data))
+
+    # Algunos modelos devuelven varias salidas como pueden ser la capa
+    # reshape y los logits, etc... Para conocer la salida a utilizar en el
+    # loss lo que hacemos es tomar la que se indique en le parametro out_pos
+    if type(model_out) is list or type(model_out) is tuple:
+        model_out = model_out[out_pos]
+
+    # Calculo el error obtenido
+    cost = loss(model_out, target)
+    cost.backward()
+
+    # Actualizamos pesos y gradientes
+    optimizer.step()
+
+    return cost.item()
+
+
+def evaluate_accuracy_models(models, data):
 
     for model in models:
         model.eval()
