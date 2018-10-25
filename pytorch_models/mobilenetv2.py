@@ -4,9 +4,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from utils import Linear_act,return_activation,apply_conv,apply_linear,apply_pool, MamasitaNetwork,add_gaussian,apply_DePool,apply_DeConv
 
-            # (expansion, out_planes, num_blocks, stride)
+# (expansion, out_planes, num_blocks, stride)
 cfg = {
     "MobileNetStandard": [(1,  16, 1, 1),
                           (6,  24, 2, 1),
@@ -17,10 +16,10 @@ cfg = {
                           (6, 320, 1, 1)],
     "MobileNetSmallv0": [(1,  16, 1, 1),
                          (6,  24, 2, 2),
-                         (6,  32, 2, 2),
-                         (6,  64, 3, 1),
-                         (6, 64, 2, 2),
-                         (6, 128, 1, 2)],
+                         (6,  32, 3, 2),
+                         (6,  64, 4, 1),
+                         (6, 128, 2, 2),
+                         (6, 256, 1, 2)],
     "MobileNetSmallv1": [(1,  16, 1, 1),
                          (6,  24, 2, 2),
                          (6,  32, 3, 2),
@@ -31,7 +30,7 @@ cfg = {
                          (5,  24, 2, 2),
                          (6,  32, 2, 2),
                          (6,  64, 3, 1),
-                         (6,  96, 3, 1),
+                         (6,  96, 2, 1),
                          (5, 128, 2, 2),
                          (5, 256, 1, 2)]
 }
@@ -60,14 +59,17 @@ flat_size = {
 
 class Block(nn.Module):
     '''expand + depthwise + pointwise'''
-    def __init__(self, in_planes, out_planes, expansion, stride, ruido, dropout):
+    def __init__(self, in_planes, out_planes, expansion, stride):
         super(Block, self).__init__()
         self.stride = stride
 
         planes = expansion * in_planes
-        self.conv1 = apply_conv(in_planes, planes, kernel=(1,1), padding=0, stride=1, std=ruido, drop=dropout, act='relu', bn=True)
-        self.conv2 = apply_conv(planes, planes, kernel=(3,3), padding=1, stride=stride, std=ruido, groups=planes, drop=dropout, act='relu', bn=True)
-        self.conv3 = apply_conv(planes, out_planes, kernel=(1,1), padding=0, stride=1, std=ruido, drop=dropout, act='', bn=True)
+        self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=1, stride=1, padding=0, bias=False)
+        self.bn1 = nn.BatchNorm2d(planes)
+        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride, padding=1, groups=planes, bias=False)
+        self.bn2 = nn.BatchNorm2d(planes)
+        self.conv3 = nn.Conv2d(planes, out_planes, kernel_size=1, stride=1, padding=0, bias=False)
+        self.bn3 = nn.BatchNorm2d(out_planes)
 
         self.shortcut = nn.Sequential()
         if stride == 1 and in_planes != out_planes:
@@ -77,43 +79,52 @@ class Block(nn.Module):
             )
 
     def forward(self, x):
-        out = self.conv1(x)
-        out = self.conv2(out)
-        out = self.conv3(out)
+        out = F.relu(self.bn1(self.conv1(x)))
+        out = F.relu(self.bn2(self.conv2(out)))
+        out = self.bn3(self.conv3(out))
         out = out + self.shortcut(x) if self.stride==1 else out
         return out
 
 
 class MobileNetV2(nn.Module):
 
-    def __init__(self, mobilenet_name, dropout, ruido, gray, num_classes=2):
+    def __init__(self, mobilenet_name, gray, num_classes=2):
         super(MobileNetV2, self).__init__()
         self.name = mobilenet_name
-        
         if gray: initial_channels = 1
         else: initial_channels = 3
-
-        if dropout: self.conv1 = apply_conv(initial_channels, 32, kernel=(3,3), padding=1, stride=1, std=ruido, drop=0.1, act='relu', bn=True)
-        else: self.conv1 = apply_conv(initial_channels, 32, kernel=(3,3), padding=1, stride=1, std=ruido, drop=0.0, act='relu', bn=True)
-        self.layers = self._make_layers(mobilenet_name, ruido, dropout, in_planes=32)
+        # NOTE: change conv1 stride 2 -> 1 for CIFAR10
+        self.conv1 = nn.Conv2d(initial_channels, 32, kernel_size=3, stride=1, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(32)
+        self.layers = self._make_layers(mobilenet_name, in_planes=32)
         # cfg[mobilenet_name][-1][1] -> Los mapas de salida de make layers
-        self.conv2 = apply_conv(cfg[mobilenet_name][-1][1], maps_last_conv[mobilenet_name], kernel=(1,1), padding=0, stride=1, std=ruido, drop=dropout, act='relu', bn=True)
+        self.conv2 = nn.Conv2d(cfg[mobilenet_name][-1][1], maps_last_conv[mobilenet_name], kernel_size=1, stride=1, padding=0, bias=False)
+        self.bn2 = nn.BatchNorm2d(maps_last_conv[mobilenet_name])
         self.linear = nn.Linear(flat_size[mobilenet_name], num_classes)
 
-    def _make_layers(self, mobilenet_name, ruido, dropout, in_planes):
+    def _make_layers(self, mobilenet_name, in_planes):
         layers = []
         for expansion, out_planes, num_blocks, stride in cfg[mobilenet_name]:
             strides = [stride] + [1]*(num_blocks-1)
             for stride in strides:
-                layers.append(Block(in_planes, out_planes, expansion, stride, ruido, dropout))
+                layers.append(Block(in_planes, out_planes, expansion, stride))
                 in_planes = out_planes
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        out = self.conv1(x)
+        out = F.relu(self.bn1(self.conv1(x)))
         out = self.layers(out)
-        out = self.conv2(out)
+        out = F.relu(self.bn2(self.conv2(out)))
+        # NOTE: change pooling kernel_size 7 -> 4 for CIFAR10
         out = F.avg_pool2d(out, last_pool_size[self.name]) # Original 7x7 -> Tamaño salida
         out = out.view(out.size(0), -1)
         out = self.linear(out)
         return out
+
+def MobileNetv2Model(mobilenet_name, gray, num_classes):
+    if mobilenet_name not in cfg:
+        assert False, 'No MobileNetv2 Model with that name!'
+    else:
+        my_model = MobileNetV2(mobilenet_name, gray, num_classes)
+        my_model.net_type = "convolutional"
+        return my_model

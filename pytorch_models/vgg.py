@@ -4,9 +4,6 @@ import math
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
-from utils import Linear_act,return_activation,apply_conv,apply_linear,apply_pool, MamasitaNetwork,add_gaussian,apply_DePool,apply_DeConv
-
-num_classes = 2
 
 cfg = {
     'ExtraSmallMiniVGGv0': [16, 'M', 16, 'M', 16, 'M', 32, 'M', 32, 'M'],
@@ -14,84 +11,54 @@ cfg = {
     'SmallVGGv0': [32, 'M', 64, 'M', 128, 'M', 256, 'M', 512, 'M'],
     'MediumVGGv0': [32, 32, 'M', 64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M'],
     'BigVGGv0': [32, 32, 'M', 64, 64, 'M', 128, 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M'],
+    'StandardVGG11': [64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
+    'StandardVGG13': [64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
+    'StandardVGG16': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M'],
+    'StandardVGG19': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512, 512, 512, 512, 'M']
 }
 
 dropout_values = {
     'ExtraSmallMiniVGGv0': [0.1, 'M', 0.2, 'M', 0.3, 'M', 0.4, 'M', 0.5, 'M'],
-    'ExtraSmallMiniVGGv1': [0.0, 0.2, 'M', 0.0, 0.3, 'M', 0.0, 0.4, 'M', 0.0, 0.4, 'M', 0.0, 0.5, 'M'],
+    'ExtraSmallMiniVGGv1': [0, 0.2, 'M', 0, 0.3, 'M', 0, 0.4, 'M', 0, 0.4, 'M', 0, 0.5, 'M'],
     'SmallVGGv0': [0.1, 'M', 0.2, 'M', 0.3, 'M', 0.4, 'M', 0.5, 'M'],
-    'MediumVGGv0': [0.0, 0.2, 'M', 0.0, 0.3, 'M', 0.0, 0.4, 'M', 0.0, 0.4, 'M', 0.0, 0.5, 'M'],
-    'BigVGGv0': [0.0, 0.2, 'M', 0.0, 0.3, 'M', 0.0, 0.0, 0.4, 'M', 0.0, 0.0, 0.4, 'M', 0.0, 0.0, 0.5, 'M'],
+    'MediumVGGv0': [0, 0.2, 'M', 0, 0.3, 'M', 0, 0.4, 'M', 0, 0.4, 'M', 0, 0.5, 'M'],
+    'BigVGGv0': [0, 0.2, 'M', 0, 0.3, 'M', 0, 0, 0.4, 'M', 0, 0, 0.4, 'M', 0, 0, 0.5, 'M'],
+    'StandardVGG11': [0.1, 'M', 0.15, 'M', 0.2, 0.2, 'M', 0.35, 0.35, 'M', 0.45, 0.45, 'M'],
+    'StandardVGG13': [0.1, 0.1, 'M', 0.15, 0.15, 'M', 0.2, 0.2, 'M', 0.35, 0.35, 'M', 0.45, 0.45, 'M'],
+    'StandardVGG16': [0.1, 0.1, 'M', 0.15, 0.15, 'M', 0.2, 0.2, 0.2, 'M', 0.35, 0.35, 0.35, 'M', 0.45, 0.45, 0.45, 'M'],
+    'StandardVGG19': [0.1, 0.1, 'M', 0.15, 0.15, 'M', 0.2, 0.2, 0.2, 0.2, 'M', 0.35, 0.35, 0.35, 0.35, 'M', 0.45, 0.45, 0.45, 0.45, 'M']
 }
 
-flat_size = {
-    'ExtraSmallMiniVGGv0': 32*2*2,
-    'ExtraSmallMiniVGGv1': 32*2*2,
-    'SmallVGGv0': 512*2*2,
-    'MediumVGGv0': 512*2*2,
-    'BigVGGv0': 512*2*2,
-}
-
-"""
--- Original --
-'VGG11': [64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
-'VGG13': [64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
-'VGG16': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M'],
-'VGG19': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512, 512, 512, 512, 'M'],
-"""
-
-class MamasitaNetwork(nn.Module):
-    #utils
-    dynamicgeneration=[0]
-    dynamicbatch=[0]
-
-class VGG(MamasitaNetwork):
-    def __init__(self, vgg_name, dropout, ruido, gray):
+# El flat size pude variar dependiendo del tamaño de entrada de las imagenes
+class VGG(nn.Module):
+    def __init__(self, vgg_name, num_classes, flat_size, dropout, ruido, gray):
         super(VGG, self).__init__()
-        self.forward_conv = self._make_layers(vgg_name, ruido, dropout, gray)
-
-
-        if 'Mini' in vgg_name:
-            lin1=apply_linear(flat_size[vgg_name], 32,'relu', drop=dropout, bn=True)
-            lin2=apply_linear(32,16,'relu', drop=dropout, bn=True)
-            lin3=apply_linear(16, num_classes, 'linear', bn=True)
-            self.forward_linear = nn.Sequential(lin1,lin2,lin3)
-        else:
-            lin1=apply_linear(flat_size[vgg_name], 512,'relu', drop=dropout, bn=True)
-            lin2=apply_linear(512,256,'relu', drop=dropout, bn=True)
-            lin3=apply_linear(256,256,'relu', drop=dropout, bn=True)
-            lin4=apply_linear(256, num_classes, 'linear', bn=True)
-            self.forward_linear = nn.Sequential(lin1,lin2,lin3,lin4)
-        self.vgg_name = vgg_name
-
-        # Con reduce=False lo que hacemos es que no se sume
-        # para todos los batches y se haga la media del loss de forma automatica
-        self.cost_func=torch.nn.CrossEntropyLoss(reduce=False)
-
-    def forward(self, x):
-        x = self.forward_conv(x)
-        x = x.view(-1, flat_size[self.vgg_name])
-        x = self.forward_linear(x)
-        return x
-
-    def _make_layers(self, vgg_name, std, dropout, gray):
-        layers = []
 
         if gray: in_channels = 1
         else: in_channels = 3
 
-        for indx, (layer) in enumerate(cfg[vgg_name]):
-            if layer == 'M':
-                layers += [apply_pool(kernel=(2,2))]
+        conv_layers = []
+        for indx, (channels) in enumerate(cfg[vgg_name]):
+            if channels == 'M':
+                conv_layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
             else:
-                # SOLO le voy a poner Dropout a la ultima convolucional de cada 'bloque'
-                if dropout!=0.0:
-                    layers += [apply_conv(in_channels, layer, kernel=(3,3), act='relu', std=std, drop=dropout_values[vgg_name][indx], bn=True)]
-                else:
-                    layers += [apply_conv(in_channels, layer, kernel=(3,3), act='relu', std=std, drop=0.0, bn=True)]
-                in_channels = layer
-        #layers += [nn.AvgPool2d(kernel_size=1, stride=1)]
-        return nn.Sequential(*layers)
+                conv_layers += [nn.Conv2d(in_channels, channels, kernel_size=3, padding=1),
+                                nn.BatchNorm2d(channels),
+                                nn.ReLU()]
+                if dropout and dropout_values[vgg_name][indx] != 0:
+                    conv_layers += [nn.Dropout2d(dropout_values[vgg_name][indx])]
+                in_channels = channels
+        conv_layers += [nn.AvgPool2d(kernel_size=1, stride=1)]
+        self.forward_conv = nn.Sequential(*conv_layers)
+
+        self.forward_linear = nn.Linear(flat_size, num_classes)
+
+
+    def forward(self, x):
+        x = self.forward_conv(x)
+        x = x.view(x.size(0), -1)
+        x = self.forward_linear(x)
+        return x
 
 
 def VGGModel(vgg_name, dropout, ruido, gray):

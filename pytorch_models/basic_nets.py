@@ -4,86 +4,105 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
+from collections import OrderedDict
 
-cfg = {
-    'SmallMiMic': [512, 1024, 2048],
-    'MediumMiMic': [1024, 2048, 4096],
-    'DecreasingMiMic': [4096, 2048, 1024]
+MLP_CONFIGURATIONS = {
+    'SmallMiMic': [512, 1024, 2048, 512, "|", 2, "|"],
+    'MediumMiMic': [1024, 2048, 4096, 512, "|", 2, "|"],
+    'DecreasingMiMic': [4096, 2048, 1024, 512, "|", 2, "|"]
 }
 
 class MLPNet(nn.Module):
+    """ To create MLPs
+    MultiLayer Perceptron generator
+    Args:
+        mlp_cfg: The configuration of MLP. Introduce "|" after
+        each layer you want know the output. Example [128, 256, num_clases, "|"]
+        in_features: How many input features enter in the model
+        out_type: Desired output type ("relu" or "linear" implemented)
+    Returns:
+        A Module that fits your mlp_cfg
     """
-    Red neuronal de tres capas ocultas que tratará de aprender
-    la representación intermedia que se obtinene en un paso 
-    de una red convolucional a traves del error cuadratico medio
-    """
-    def __init__(self, which_cfg, in_features, out_features, out_type='relu'):
+    def __init__(self, mlp_cfg, in_features, out_type='relu'):
         super(MLPNet, self).__init__()
         self.net_type = "fully-connected"
-        
-        n_features = in_features # Imagen de entrada en vector (Imagen de 80x80)
-        n_out = out_features # Numero neuronas que aprenderemos
 
-        # Primera capa oculta, entran n_features y tenemos 1024 neuronas
-        self.hidden0 = nn.Sequential( 
-            nn.Linear(n_features, cfg[which_cfg][0]),
-            nn.BatchNorm1d(cfg[which_cfg][0]),
-            nn.ReLU()
-        )
-        
-        # Segunda capa oculta, entran 1024 neuronas de la capa anterior y salen 2048
-        self.hidden1 = nn.Sequential(
-            nn.Linear(cfg[which_cfg][0], cfg[which_cfg][1]),
-            nn.BatchNorm1d(cfg[which_cfg][1]),
-            nn.ReLU()
-        )
-        
-        # Tercera capa oculta, entran 2048 neuronas de la capa anterior y salen 4096
-        self.hidden2 = nn.Sequential(
-            nn.Linear(cfg[which_cfg][1], cfg[which_cfg][2]),
-            nn.BatchNorm1d(cfg[which_cfg][2]),
-            nn.ReLU()            
-        )
-        
-        # Capa de salida, entran 4096 neuronas de la capa anterior y sacamos las neuronas deseadas
-        if out_type == 'relu':
-            self.reshapeLayer = nn.Sequential(
-                nn.Linear(cfg[which_cfg][2], n_out),
-                nn.BatchNorm1d(n_out),
-                nn.ReLU()
-            )
-            self.out = nn.Sequential()
+        # Check if choosed prebuilt configuration
+        if type(mlp_cfg) is str: mlp_cfg = MLP_CONFIGURATIONS[mlp_cfg]
 
-        elif out_type == 'linear':
-            # La salida linear la vamos a querer cuando queremos aprender
-            # los logits y tendremos por lo general 512 neuronas previas 
-            # representando el reshape
-            self.reshapeLayer = nn.Sequential(
-                nn.Linear(cfg[which_cfg][2], 512),
-                nn.BatchNorm1d(512),
-                nn.ReLU()
-            )
+        if out_type not in ["relu", "linear"]: assert False, 'No out type configured for this MLP network!'
 
-            self.out = nn.Sequential(
-                nn.Linear(512, n_out),
-                nn.BatchNorm1d(n_out)
-            )
+        linear_layers, self.get_output, num_layers = [], [], 1
+        for indx, (n_features) in enumerate(mlp_cfg):
+            if n_features == "|": self.get_output[-1] = True
+            else:
+                self.get_output.append(False)
+                last_layer = indx+1 == len(mlp_cfg) or (indx+2 == len(mlp_cfg) and mlp_cfg[-1] == "|")
 
-        else: assert False, 'No out type valid for this MiMic network!'
+                if not last_layer:
+                    linear_name = "Linear" + str(num_layers)
+                    batchnorm_name = "BatchNorm" + str(num_layers)
+                    relu_name = "ReLU" + str(num_layers)
+                else:
+                    linear_name = "OUT_Linear" + str(num_layers)
+                    batchnorm_name = "OUT_BatchNorm" + str(num_layers)
+                    relu_name = "OUT_ReLU" + str(num_layers)
+                """
+                - You can access the components through their names as follows:
+                    for forward_lineal in nlpnetmodel.children():
+                        for sequential in child.children():
+                            for operation in sequential.named_children():
+                                # named_children is a list (name, children_component)
+                                if "OUT" in operation[0]:
+                                    operation[1].requires_grad = False
+                                else :
+                                    operation[1].requires_grad = True
+                """
+
+                step_definition = []
+                step_definition.append((linear_name, nn.Linear(in_features, n_features)))
+                step_definition.append((batchnorm_name, nn.BatchNorm1d(n_features)))
+
+                if last_layer:
+                    # Si estamos aqui es porque es la ultima capa a añadir
+                    if out_type == 'linear': pass # No añadimos nada
+                    elif out_type == 'relu':
+                        step_definition.append((relu_name, nn.ReLU()))
+                else:
+                    step_definition.append((relu_name, nn.ReLU()))
+
+                step = nn.Sequential(OrderedDict(step_definition))
+                linear_layers.append(step)
+                # Cambiamos las ultimas neuronas de entrada para poder conectar las capas correctamente
+                in_features = n_features
+                num_layers += 1
+
+        self.forward_linear = nn.Sequential(*linear_layers)
 
     def forward(self, x):
-        x = self.hidden0(x)
-        x = self.hidden1(x)
-        x = self.hidden2(x)
-        reshape = self.reshapeLayer(x)
-        logits = self.out(reshape)
-        return reshape, logits
+        out = []
+        for indx, (step) in enumerate(self.forward_linear.children()):
+            # Iterate over Sequential modules created
+            # Si nos encontramos con una barra "|" es porque
+            # queremos obtener el valor de aplicar la anterior Sequential
+            # Si no aplicamos el step (Sequential) que toque
+
+            # Por algun tipo de problema no puedo hacer step(x) asi que itero sobre las
+            # componentes internas del step (Linear-BatchNorm-ReLU) y voy operando
+            #for step_component in step.children():
+            x = step(x)
+
+            if self.get_output[indx]: out.append(x)
+
+        if len(out) == 0: assert False, "MLP not returns nothing?"
+        elif len(out) == 1: return out[0]
+        return out
 
 
 class ConvNet(nn.Module):
     """
     Red convolucional de tres capas ocultas que tratará de aprender
-    la representación intermedia que se obtinene en un paso 
+    la representación intermedia que se obtinene en un paso
     de una red convolucional a traves del error cuadratico medio
     """
     def __init__(self, out_type='relu'):
@@ -126,9 +145,14 @@ class ConvNet(nn.Module):
         return reshape, logits
 
 
-def BasicModel(model_name, in_features, out_features, out_type="relu"):
-    if model_name in ["SmallMiMic", "MediumMiMic", "DecreasingMiMic"]:
-        return MLPNet(model_name, in_features, out_features, out_type)
-    elif model_name == "ConvMiMic":
+def BasicModel(model_cfg, model_type, in_features, out_type="relu"):
+    if model_cfg in ["SmallMiMic", "MediumMiMic", "DecreasingMiMic"]:
+        return MLPNet(model_cfg, in_features, out_type)
+    elif model_cfg == "ConvMiMic":
         return ConvNet(out_type)
+    elif type(model_cfg) is list or type(model_cfg) is tuple:
+        if "MLP" in model_type:
+            return MLPNet(model_cfg, in_features, out_type)
+        if "Convolutional" in model_type:
+            return ConvNet(out_type)
     assert False, 'No Basic Networks networks with this name!'
