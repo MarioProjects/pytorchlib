@@ -26,6 +26,9 @@ def models_average(outputs, scheme):
         - voting: donde la clase de mayor probabilidad vota 1 y el resto 0
         - sum: se suma la probabilidad de todas las clases para decidir
     """
+    if not (type(outputs) is list or type(outputs) is tuple):
+        assert False, "List of diferents outputs needed!"
+
     # Si no utilizamos el numpy() el tensor va por referencia y 
     # modifica la entrada original
     if scheme == "sum":
