@@ -145,7 +145,7 @@ class ConvNet(nn.Module):
         return reshape, logits
 
 
-def BasicModel(model_cfg, model_type, in_features, out_type="relu"):
+def BasicModel(model_cfg, model_type, in_features, gray=0, out_type="relu"):
     if model_cfg in ["SmallMiMic", "MediumMiMic", "DecreasingMiMic"]:
         return MLPNet(model_cfg, in_features, out_type)
     elif model_cfg == "ConvMiMic":
