@@ -1,7 +1,6 @@
  - RECORDATORIO: Añadir atributo 'net_type' a todas las redes ("fully-connected", "convolutional")
  - Hacer posible que pasemos una lista de configuracion de la red para inicializarla (VGG, ResNet, DenseNet, BasicNets)
  - Comentar todo estilo PEP8 (mirar proyecto Felix?)
- - Hacer funcion models_average([models], data, scheme=["voting","sum"])
  - Crear en models_interface funcion para cargar modelos de imagenet y poder usarlos/reentrenarlos facilmente en otros problemas
  - Hacer funcion para realizar la Crossentropia facilmente
  - Comprobar cuda available para usar cuda y torch.cuda.floatensor y demas
