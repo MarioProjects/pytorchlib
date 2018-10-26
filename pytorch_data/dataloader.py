@@ -21,7 +21,7 @@ class ConvolutionalDataset(data.Dataset):
 
     def __getitem__(self,index):
 
-        img,target=self.images[index],self.labels[index]
+        img, target=self.images[index], self.labels[index]
 
         if self.transforms is not None:
             img = self.transforms(img)
@@ -29,7 +29,7 @@ class ConvolutionalDataset(data.Dataset):
         if self.tag_transforms is not None:
             target = self.tag_transforms(target)
 
-        return img,target
+        return img, target
 
     def __len__(self):
         return len(self.labels)

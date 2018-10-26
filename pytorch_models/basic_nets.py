@@ -5,11 +5,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 from collections import OrderedDict
+from pytorchlib.pytorch_library import utils_nets
 
 MLP_CONFIGURATIONS = {
-    'SmallMiMic': [512, 1024, 2048, 512, "|", 2, "|"],
-    'MediumMiMic': [1024, 2048, 4096, 512, "|", 2, "|"],
-    'DecreasingMiMic': [4096, 2048, 1024, 512, "|", 2, "|"]
+    'MLPSmallMiMic': [512, 1024, 2048, 512, "|", 2, "|"],
+    'MLPMediumMiMic': [1024, 2048, 4096, 512, "|", 2, "|"],
+    'MLPDecreasingMiMic': [4096, 2048, 1024, 512, "|", 2, "|"]
 }
 
 class MLPNet(nn.Module):
@@ -23,56 +24,40 @@ class MLPNet(nn.Module):
     Returns:
         A Module that fits your mlp_cfg
     """
-    def __init__(self, mlp_cfg, in_features, out_type='relu'):
+    def __init__(self, mlp_cfg, in_features, out_type='relu', dropout=0.0, std=0.0, batchnorm=True):
         super(MLPNet, self).__init__()
         self.net_type = "fully-connected"
 
         # Check if choosed prebuilt configuration
         if type(mlp_cfg) is str: mlp_cfg = MLP_CONFIGURATIONS[mlp_cfg]
 
-        if out_type not in ["relu", "linear"]: assert False, 'No out type configured for this MLP network!'
-
-        linear_layers, self.get_output, num_layers = [], [], 1
+        linear_layers, self.get_output, num_layers, default_act = [], [], 0, "relu"
         for indx, (n_features) in enumerate(mlp_cfg):
             if n_features == "|": self.get_output[-1] = True
             else:
                 self.get_output.append(False)
                 last_layer = indx+1 == len(mlp_cfg) or (indx+2 == len(mlp_cfg) and mlp_cfg[-1] == "|")
 
-                if not last_layer:
-                    linear_name = "Linear" + str(num_layers)
-                    batchnorm_name = "BatchNorm" + str(num_layers)
-                    relu_name = "ReLU" + str(num_layers)
-                else:
-                    linear_name = "OUT_Linear" + str(num_layers)
-                    batchnorm_name = "OUT_BatchNorm" + str(num_layers)
-                    relu_name = "OUT_ReLU" + str(num_layers)
+                if not last_layer: append2name = "_Seq" + str(num_layers)
+                else: append2name = "_Seq" + str(num_layers) + "_OUT"
+
                 """
                 - You can access the components through their names as follows:
                     for forward_lineal in nlpnetmodel.children():
                         for sequential in child.children():
                             for operation in sequential.named_children():
                                 # named_children is a list (name, children_component)
-                                if "OUT" in operation[0]:
-                                    operation[1].requires_grad = False
-                                else :
-                                    operation[1].requires_grad = True
+                                name = operation[0]
+                                parameter = operation[1]
+                                if "OUT" in name: parameter.requires_grad = True
+                                else: parameter.requires_grad = False
                 """
 
-                step_definition = []
-                step_definition.append((linear_name, nn.Linear(in_features, n_features)))
-                step_definition.append((batchnorm_name, nn.BatchNorm1d(n_features)))
+                if last_layer:  default_act, dropout, std = out_type, 0.0, 0.0
+                layer = utils_nets.apply_linear(in_features, n_features, default_act, std=std, 
+                                                dropout=dropout, batchnorm=batchnorm, name_append=append2name)
 
-                if last_layer:
-                    # Si estamos aqui es porque es la ultima capa a añadir
-                    if out_type == 'linear': pass # No añadimos nada
-                    elif out_type == 'relu':
-                        step_definition.append((relu_name, nn.ReLU()))
-                else:
-                    step_definition.append((relu_name, nn.ReLU()))
-
-                step = nn.Sequential(OrderedDict(step_definition))
-                linear_layers.append(step)
+                linear_layers.append(layer)
                 # Cambiamos las ultimas neuronas de entrada para poder conectar las capas correctamente
                 in_features = n_features
                 num_layers += 1
@@ -105,7 +90,7 @@ class ConvNet(nn.Module):
     la representación intermedia que se obtinene en un paso
     de una red convolucional a traves del error cuadratico medio
     """
-    def __init__(self, out_type='relu'):
+    def __init__(self, out_type='relu', dropout=0.0, std=0.0):
         super(ConvNet, self).__init__()
         self.net_type = "convolutional"
 
@@ -145,14 +130,12 @@ class ConvNet(nn.Module):
         return reshape, logits
 
 
-def BasicModel(model_cfg, model_type, in_features, gray=0, out_type="relu"):
-    if model_cfg in ["SmallMiMic", "MediumMiMic", "DecreasingMiMic"]:
-        return MLPNet(model_cfg, in_features, out_type)
+def BasicModel(model_cfg, model_type, in_features, gray=0, out_type="relu", dropout=0.0, std=0.0):
+    if "MLP" in model_type:
+        return MLPNet(model_cfg, in_features, out_type, dropout=dropout, std=std)
     elif model_cfg == "ConvMiMic":
-        return ConvNet(out_type)
+        return ConvNet(out_type, dropout=dropout, std=std)
     elif type(model_cfg) is list or type(model_cfg) is tuple:
-        if "MLP" in model_type:
-            return MLPNet(model_cfg, in_features, out_type)
         if "Convolutional" in model_type:
-            return ConvNet(out_type)
+            return ConvNet(out_type, dropout=dropout, std=std)
     assert False, 'No Basic Networks networks with this name!'

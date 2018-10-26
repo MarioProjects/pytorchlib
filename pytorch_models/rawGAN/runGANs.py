@@ -38,7 +38,7 @@ def parse_args():
 
     aux=parser.parse_args()
     torch.manual_seed(seed=aux.seed)
-    torch.cuda.manual_seed(seed=aux.seed)	
+    torch.cuda.manual_seed(seed=aux.seed)
     numpy.random.seed(seed=aux.seed)
 
     torch.cuda.set_device(aux.n_gpu)
@@ -62,7 +62,7 @@ if __name__=='__main__':
     #training
     assert len(mmu_t)==len(epochs_t) and len(mmu_t)==len(lr_t)
     torch.backends.cudnn.enabled=True
-    
+
     #for saving the model and logging
     counter=0
 
@@ -103,7 +103,7 @@ if __name__=='__main__':
 
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
-    
+
     logging.basicConfig(filename=log_dir+'train.log',level=logging.INFO)
     logging.info("Logger for model: {}".format('GANs:'))
     logging.info("Training specificacitions: epochs {} lr {} mmu {} ".format(epochs_t,lr_t,mmu_t))
@@ -140,7 +140,7 @@ if __name__=='__main__':
                 l_new=anneal_lr(lr_init,epochs_N,e)
                 D_optim=select_optimizer(D_parameters,lr=1e-3,mmu=mmu,optim='ADAM')
                 G_optim=select_optimizer(G_parameters,lr=1e-3,mmu=mmu,optim='ADAM')
-            
+
             Dcost_acc=torch.tensor(0.0).cuda()
             Gcost_acc=torch.tensor(0.0).cuda()
             for x,t in train_loader:
@@ -149,15 +149,15 @@ if __name__=='__main__':
 
                 #discriminator updates
                 z=Net.sample_from_z()#sample from latent
-                x_fake = Net.generator_forward(z)# xfake=G(z)				
+                x_fake = Net.generator_forward(z)# xfake=G(z)
                 D_real_fake=Net.discriminator_forward(torch.cat((x,x_fake),0))# t=D([xfake,x])
-                
+
                 D_cost=Net.discriminator_cost(D_real_fake,torch.cat((D_t,G_t),0))#cross entropy
 
                 D_optim.zero_grad()#clean grads
                 G_optim.zero_grad()
 
-                D_cost.backward()#backward 
+                D_cost.backward()#backward
                 D_optim.step()#update discriminator. MINIMIZE CROSS ENTROPY (maximize likelihood)
 
                 D_optim.zero_grad()#reset grads again for non overlap
@@ -168,24 +168,24 @@ if __name__=='__main__':
                 x_fake = Net.generator_forward(z)# xfake=G(z)
                 D_fake=Net.discriminator_forward(x_fake)# t=D(G(z))
                 G_cost=Net.discriminator_cost(D_fake,D_t)#cross entropy. CHANGE SIGN. we minimize likelihood which is maximize cross entropy
-                G_cost.backward()#backward 
+                G_cost.backward()#backward
                 G_optim.step()#update discriminator. MINIMIZE CROSS ENTROPY (maximize likelihood)
-            
+
 
                 Dcost_acc+=D_cost.data
                 Gcost_acc+=G_cost.data
 
-            #sample some images from the generator			
+            #sample some images from the generator
             z=Net.sample_from_z()#sample from latent
-            x_fake = Net.generator_forward(z)# xfake=G(z)	
+            x_fake = Net.generator_forward(z)# xfake=G(z)
             save_image(x_fake.view(50,1,28,28).cpu(),'./images/itet_{}.png'.format(total_ep))
 
             print ("On epoch {} Discriminator cost {}  Generator cost {}".format(total_ep,Dcost_acc,Gcost_acc))
             total_ep+=1
 
-    
+
 
             #print("On epoch {} with lr {} LLH train conv {:.3f} LLH train fc {:.3f} SSE train fc {:.3f} train error conv {:.3f} train error fc {:.3f} test error conv {:.3f} test error fc {:.3f}  of total train samples {} total test samples {}".format(e,lr_new,ceerr_train_conv,ceerr_train_fc,sse_train,mcerr_train_conv/tot_train*100,mcerr_train_fc/tot_train*100,mcerr_test_conv/tot_test*100,mcerr_test_fc/tot_test*100,tot_train,tot_test))
-            
+
 
             #torch.save(baseline_net,model_dir+'baseline_model')
