@@ -51,7 +51,7 @@ def get_activation(act, dim=1):
     elif act == 'tanh': return ACT_TANH_NAME, nn.Tanh()
     # Con linear no modificamos la entrada
     # no hacemos nada === nn.Sequential()
-    elif act ==' linear': return ACT_LINEAR_NAME, nn.Sequential()
+    elif act == 'linear': return ACT_LINEAR_NAME, nn.Sequential()
     else: assert False, "Not valid activation function!"
 
 

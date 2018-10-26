@@ -42,6 +42,15 @@ def select_model(model_name, model_config=[], in_features=0, out_features=0, dro
         my_model = BasicModel(model_config, "Convolutional", in_features, gray=gray, out_type=out_type).cuda()
 
     elif 'Imagenet' in model_name:
+
+        gray_transform = """You can transform gray images to fake 'RGB' with:
+                            \ndata_transform = transforms.Compose([
+                                \ttransforms.ToTensor(),
+                                \ttransforms.Lambda(lambda x: torch.cat([x, x, x], 0))
+                            ])\n"""
+
+        if gray: assert False, "ERROR: Imagenet models need to use color images! " + gray_transform
+
         # https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html
         if "VGG11" == model_config: my_model = models.vgg11(pretrained=pretrained)
         if "VGG11_BN" == model_config: my_model = models.vgg11_bn(pretrained=pretrained)
