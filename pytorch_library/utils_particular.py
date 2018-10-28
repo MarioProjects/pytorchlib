@@ -11,6 +11,10 @@ class MiMicNetCombined(nn.Module):
 
 
     def forward(self, x):
-        reshape_mimic, out_mimic = self.orginal_net(x)
+        out_mimic = self.orginal_net(x)
+        # Caso en el que se devuelve reshape y logits
+        if type(out_mimic) is list or type(out_mimic) is tuple:
+            reshape_mimic = out_mimic[0] 
+        else: reshape_mimic = out_mimic
         out = self.out(reshape_mimic)
         return reshape_mimic, out

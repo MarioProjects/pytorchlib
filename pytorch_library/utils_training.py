@@ -4,6 +4,30 @@ from torch import nn, optim
 import torch.nn.functional as F
 from torch.autograd.variable import Variable
 
+
+def get_optimizer(optmizer_type, model_params, lr, pmomentum=0.9, pweight_decay=5e-4, palpha=0.9):
+    # Funcion para rehacer el optmizador -> Ayuda para cambiar learning rate
+    if optmizer_type=="SGD":
+        return optim.SGD(filter(lambda p: p.requires_grad, model_params), lr=lr, momentum=pmomentum)
+    elif optmizer_type=="Adam":
+        return optim.Adam(filter(lambda p: p.requires_grad, model_params), lr=lr, weight_decay=pweight_decay)
+    elif optmizer_type=="RMSprop":
+        return optim.RMSprop(filter(lambda p: p.requires_grad, model_params), lr=lr, alpha=palpha)
+
+    assert False, 'No optimizers with that name!'
+
+def anneal_lr(redes, lr_init, total_epochs, current_epoch, optimizer_type, flag=True):
+    # flag nos indica si realmente queremos hacer el annel sobre las redes
+    if not flag: lr_new = lr_init
+    else: lr_new = -(lr_init/total_epochs) * current_epoch + lr_init
+
+    redes_resultado = []
+    for red in redes:
+        redes_resultado.append(get_optimizer(optimizer_type, red.parameters(), lr_new))
+    if len(redes_resultado) == 1: return lr_new, redes_resultado[0]
+    return lr_new, redes_resultado
+
+
 def loss_fn_kd_kldivloss(outputs, teacher_outputs, labels, temperature, alpha=0.9):
     """
     Compute the knowledge-distillation (KD) loss given outputs, labels.
@@ -19,6 +43,15 @@ def loss_fn_kd_kldivloss(outputs, teacher_outputs, labels, temperature, alpha=0.
               F.cross_entropy(outputs, labels) * (1. - alpha)
 
     return KD_loss
+
+
+def simple_target_creator(samples, value):
+    """
+    Funcion para crear un vector utilizado para asignar la clase de las
+    diferentes muestras durante el entrenamiento de tamaño 'samples'
+    El vector sera de (samplesx1) lleno de 'value'
+    """
+    return Variable(torch.ones(samples, 1)).type(torch.cuda.FloatTensor)*value
 
 
 def train_simple_model(model, data, target, loss, optimizer, out_pos=-1):
@@ -82,3 +115,62 @@ def evaluate_accuracy_models(models, data):
     accuracies = list(((np.array(correct_cnt_models) * 1.0) / total_samples)*100)
     if len(accuracies) == 1: return accuracies[0]
     return accuracies
+
+
+def train_discriminator(discriminator_net, discriminator_optimizer, real_data, fake_data, loss):
+    num_samples = real_data.size(0) # Para conocer el numero de muestras
+
+    ############################
+    # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
+    ###########################
+    
+    # 1.1 ----> Train with real
+    # Reseteamos los gradientes
+    discriminator_optimizer.zero_grad()
+    discriminator_net.zero_grad()
+    # prediction on Real Data
+    prediction_real = discriminator_net(real_data)
+    # Calculate error and backpropagate
+    # Debemos tener en cuenta que son reales -> 1s
+    error_real = loss(prediction_real, simple_target_creator(num_samples, 1))
+    error_real.backward()
+
+    # 1.2 ----> Train on Fake Data
+    prediction_fake = discriminator_net(fake_data)
+    # Calculate error and backpropagate
+    # Debemos tener en cuenta que son falsos -> 0s
+    error_fake = loss(prediction_fake, simple_target_creator(num_samples, 0))
+    error_fake.backward()
+
+    # 1.3 Update weights with gradients of discriminator
+    discriminator_optimizer.step()
+
+    # Return error
+    return error_real.item() + error_fake.item()
+
+
+def train_generator(discriminator_net, generator_optimizer, fake_data, loss):
+    num_samples = fake_data.size(0) # Para conocer el numero de muestras
+
+    ############################
+    # (2) Update G network: maximize log(D(G(z)))
+    ###########################
+    # Reseteamos gradientes
+    generator_optimizer.zero_grad()
+
+    # Inferimos nuestros datos falsos a traves del discriminador para
+    # posteriormente tratar de 'engañarlo'
+    prediction = discriminator_net(fake_data)
+
+    # Calculate error and backpropagate
+    # IMPORTANTE -> Queremos que el generador aprenda a que
+    # sus muestras sean clasificadas como reales, por lo que
+    # CALCULAMOS EL LOSS CON 1s! como si fueran reales
+    error = loss(prediction, simple_target_creator(num_samples, 1))
+    error.backward()
+
+    # 3. Actualizamos pesos y gradientes del generador
+    generator_optimizer.step()
+
+    # Return error
+    return error.item()

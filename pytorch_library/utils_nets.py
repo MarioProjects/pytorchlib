@@ -112,15 +112,6 @@ class Identity(nn.Module):
     def forward(self, x):
         return x
 
-def simple_target_creator(samples, value):
-    """
-    Funcion para crear un vector utilizado para asignar la clase de las
-    diferentes muestras durante el entrenamiento de tamaño 'samples'
-    El vector sera de (samplesx1) lleno de 'value'
-    """
-    return Variable(torch.ones(samples, 1)).type(torch.cuda.FloatTensor)*value
-
-
 def topk_classes(input, k):
     """
     Devuelve las k clases mas votadas de la entrada de mayor a menor probabilidad

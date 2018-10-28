@@ -8,7 +8,7 @@ from pytorchlib.pytorch_models.mobilenetv2 import MobileNetv2Model
 from pytorchlib.pytorch_models.densenet import DenseNetModel
 from pytorchlib.pytorch_models.basic_nets import BasicModel
 
-def select_model(model_name, model_config=[], in_features=0, out_features=0, dropout=0.0, ruido=0.0, gray=0, growth_rate=0, out_type='relu', data_parallel=False, pretrained=True):
+def select_model(model_name, model_config=[], in_features=0, out_features=0, dropout=0.0, ruido=0.0, gray=0, growth_rate=0, out_type='', batchnorm=True, default_act="relu", data_parallel=False, pretrained=True):
     """ Model instantiator
     To instantiate models in a simple way
     Args:
@@ -36,7 +36,7 @@ def select_model(model_name, model_config=[], in_features=0, out_features=0, dro
         my_model = MobileNetv2Model(model_config, gray, num_classes).cuda()
 
     elif 'Simple_MLP' in model_name:
-        my_model = BasicModel(model_config, "MLP", in_features, gray=gray, out_type=out_type, dropout=dropout, std=ruido).cuda()
+        my_model = BasicModel(model_config, "MLP", in_features, out_type, gray=gray, dropout=dropout, std=ruido, batchnorm=batchnorm, default_act=default_act).cuda()
 
     elif 'Simple_Convolutional' in model_name:
         my_model = BasicModel(model_config, "Convolutional", in_features, gray=gray, out_type=out_type).cuda()
@@ -89,10 +89,10 @@ def select_model(model_name, model_config=[], in_features=0, out_features=0, dro
     return my_model
 
 
-def load_model(model_name, states_path, gray, dropout=0.0, ruido=0.0, growth_rate=0, in_features=0, out_type='relu', model_config=[]):
+def load_model(model_name, states_path="", gray=0, dropout=0.0, ruido=0.0, growth_rate=0, in_features=0, out_type='relu', model_config=[]):
 
-    if not os.path.exists(states_path): assert False, "Wrong Models States Path!"
-    my_model = select_model(model_name, dropout, ruido, gray, growth_rate=growth_rate, in_features=in_features, out_type=out_type, model_config=model_config)
+    if not os.path.exists(states_path): assert False, "Wrong Models_States Path!"
+    my_model = select_model(model_name, model_config=model_config, dropout=dropout, ruido=ruido, gray=gray, growth_rate=growth_rate, in_features=in_features, out_type=out_type)
     model_state_dict = torch.load(states_path)
 
     # create new OrderedDict that does not contain `module.`

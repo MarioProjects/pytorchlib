@@ -10,7 +10,15 @@ from pytorchlib.pytorch_library import utils_nets
 MLP_CONFIGURATIONS = {
     'MLPSmallMiMic': [512, 1024, 2048, 512, "|", 2, "|"],
     'MLPMediumMiMic': [1024, 2048, 4096, 512, "|", 2, "|"],
-    'MLPDecreasingMiMic': [4096, 2048, 1024, 512, "|", 2, "|"]
+    'MLPDecreasingMiMic': [4096, 2048, 1024, 512, "|", 2, "|"],
+    
+    'MLPSmallMiMicReshape': [512, 1024, 2048, 512, "|"],
+    'MLPMediumMiMicReshape': [1024, 2048, 4096, 512, "|"],
+    'MLPDecreasingMiMicReshape': [4096, 2048, 1024, 512, "|"],
+
+    'MLPSmallMiMicLogits': [512, 1024, 2048, 512, 2, "|"],
+    'MLPMediumMiMicLogits': [1024, 2048, 4096, 512, 2, "|"],
+    'MLPDecreasingMiMicLogits': [4096, 2048, 1024, 512, 2, "|"]
 }
 
 class MLPNet(nn.Module):
@@ -24,14 +32,14 @@ class MLPNet(nn.Module):
     Returns:
         A Module that fits your mlp_cfg
     """
-    def __init__(self, mlp_cfg, in_features, out_type='relu', dropout=0.0, std=0.0, batchnorm=True):
+    def __init__(self, mlp_cfg, in_features, out_type, dropout=0.0, std=0.0, batchnorm=True, default_act="relu"):
         super(MLPNet, self).__init__()
         self.net_type = "fully-connected"
 
         # Check if choosed prebuilt configuration
         if type(mlp_cfg) is str: mlp_cfg = MLP_CONFIGURATIONS[mlp_cfg]
 
-        linear_layers, self.get_output, num_layers, default_act = [], [], 0, "relu"
+        linear_layers, self.get_output, num_layers = [], [], 0
         for indx, (n_features) in enumerate(mlp_cfg):
             if n_features == "|": self.get_output[-1] = True
             else:
@@ -130,12 +138,12 @@ class ConvNet(nn.Module):
         return reshape, logits
 
 
-def BasicModel(model_cfg, model_type, in_features, gray=0, out_type="relu", dropout=0.0, std=0.0):
+def BasicModel(model_cfg, model_type, in_features, out_type, gray=0, dropout=0.0, std=0.0, batchnorm=True, default_act="relu"):
     if "MLP" in model_type:
-        return MLPNet(model_cfg, in_features, out_type, dropout=dropout, std=std)
+        return MLPNet(model_cfg, in_features, out_type, dropout=dropout, std=std, batchnorm=batchnorm, default_act=default_act)
     elif model_cfg == "ConvMiMic":
-        return ConvNet(out_type, dropout=dropout, std=std)
+        return ConvNet(out_type, dropout=dropout, std=std, batchnorm=batchnorm, default_act=default_act)
     elif type(model_cfg) is list or type(model_cfg) is tuple:
         if "Convolutional" in model_type:
-            return ConvNet(out_type, dropout=dropout, std=std)
+            return ConvNet(out_type, dropout=dropout, std=std, batchnorm=batchnorm, default_act=default_act)
     assert False, 'No Basic Networks networks with this name!'
