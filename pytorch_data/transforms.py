@@ -215,3 +215,8 @@ def single_normalize(feats, norm):
     else: raise NotImplemented
 
     return feats
+
+
+def apply_albumentation(aug, image):
+    image = aug(image=image)['image']
+    return image

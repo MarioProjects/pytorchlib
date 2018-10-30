@@ -1,4 +1,9 @@
+import numpy as np
+import torch
 import torch.utils.data as data
+import pytorchlib.pytorch_data.transforms as custom_transforms
+import pytorchlib.pytorch_library.utils_particular as utils_particular
+import constants
 
 class ConvolutionalDataset(data.Dataset):
 
@@ -35,3 +40,27 @@ class ConvolutionalDataset(data.Dataset):
         return len(self.labels)
 
 
+def gen_quick_draw_doodle(df, pick_order, pick_per_epoch, batch_size, generator, transforms, norm):
+    while True:  # Infinity loop
+        pick_order = generator.permutation(pick_order)
+        for i in range(pick_per_epoch):
+            c_pick = pick_order[i*batch_size: (i+1)*batch_size]
+            dfs = df.iloc[c_pick]
+            out_imgs = list(map(utils_particular.strokes_to_img, dfs["drawing"]))
+
+            inputs = np.array(out_imgs)[:, :, :, :3].astype(np.float32)
+            labels = np.array([constants.NAME_TO_CLASS[x] for x in dfs["word"]])
+
+            # Debemos aplicar las transformaciones pertinentes definidas en all_augmentations
+            print(inputs.shape)
+            for indx, (sample) in enumerate(inputs):
+                print(sample.shape)
+                inputs[indx] = custom_transforms.apply_albumentation(transforms, sample)
+
+            inputs = torch.from_numpy(inputs)
+            labels = torch.from_numpy(labels)
+            inputs = inputs.permute(0,3,1,2)
+
+            # Normalizamos los datos
+            inputs = custom_transforms.single_normalize(inputs, norm)
+            yield inputs, labels
