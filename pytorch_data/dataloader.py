@@ -52,9 +52,7 @@ def gen_quick_draw_doodle(df, pick_order, pick_per_epoch, batch_size, generator,
             labels = np.array([constants.NAME_TO_CLASS[x] for x in dfs["word"]])
 
             # Debemos aplicar las transformaciones pertinentes definidas en all_augmentations
-            print(inputs.shape)
             for indx, (sample) in enumerate(inputs):
-                print(sample.shape)
                 inputs[indx] = custom_transforms.apply_albumentation(transforms, sample)
 
             inputs = torch.from_numpy(inputs)

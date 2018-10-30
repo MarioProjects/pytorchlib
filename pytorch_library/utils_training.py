@@ -80,7 +80,7 @@ def train_simple_model(model, data, target, loss, optimizer, out_pos=-1):
     return cost.item()
 
 
-def evaluate_accuracy_models(models, data):
+def evaluate_accuracy_models(models, data, max_data=0):
 
     for model in models:
         model.eval()
@@ -111,6 +111,7 @@ def evaluate_accuracy_models(models, data):
             correct_cnt_models[model_indx] += correct_cnt
 
         total_samples += batch.shape[0]
+        if max_data != 0 and max_data >= total_samples: break
 
     accuracies = list(((np.array(correct_cnt_models) * 1.0) / total_samples)*100)
     if len(accuracies) == 1: return accuracies[0]

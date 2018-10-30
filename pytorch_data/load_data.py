@@ -223,14 +223,14 @@ def quick_draw_doodle(seed=0, train_segment="0_10000", batch_size=100, norm="Non
         data_type = "eval"
         probability_apply_transformations = 1
         transforms = albumentations.Compose([
-            albumentations.CenterCrop(desired_img_size[1], desired_img_size[0]),
+            #albumentations.CenterCrop(desired_img_size[1], desired_img_size[0]),
             albumentations.Normalize(max_pixel_value = 1),
         ], p=probability_apply_transformations)
     else:
         data_type = "train"
         probability_apply_transformations = 1
         transforms = albumentations.Compose([
-            albumentations.RandomCrop(desired_img_size[1], desired_img_size[0]),
+            #albumentations.RandomCrop(desired_img_size[1], desired_img_size[0]),
             albumentations.HorizontalFlip(p=0.5),
             albumentations.Normalize(max_pixel_value = 1),
         ], p=probability_apply_transformations)

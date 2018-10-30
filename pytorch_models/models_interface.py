@@ -1,5 +1,6 @@
 import torch
 from torchvision import datasets, models, transforms
+import torch.nn as nn
 import os
 from collections import OrderedDict
 from pytorchlib.pytorch_models.vgg import VGGModel
