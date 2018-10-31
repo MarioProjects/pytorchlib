@@ -172,7 +172,7 @@ class ExtraSmallResNet(nn.Module):
 
 
 
-def ResNetModel(res_name, gray):
+def ResNetModel(res_name, gray, num_classes=2):
     my_model = False
     if 'ExtraSmall' in res_name:
         if 'Basic' in res_name:

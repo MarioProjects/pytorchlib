@@ -4,6 +4,7 @@ import math
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
+from pytorchlib.pytorch_library import utils_nets
 
 cfg = {
     'ExtraSmallMiniVGGv0': [16, 'M', 16, 'M', 16, 'M', 32, 'M', 32, 'M'],
@@ -29,9 +30,10 @@ dropout_values = {
     'StandardVGG19': [0.1, 0.1, 'M', 0.15, 0.15, 'M', 0.2, 0.2, 0.2, 0.2, 'M', 0.35, 0.35, 0.35, 0.35, 'M', 0.45, 0.45, 0.45, 0.45, 'M']
 }
 
+
 # El flat size pude variar dependiendo del tamaño de entrada de las imagenes
 class VGG(nn.Module):
-    def __init__(self, vgg_name, num_classes, flat_size, dropout, ruido, gray):
+    def __init__(self, vgg_name, flat_size, dropout, ruido, gray, num_classes=2):
         super(VGG, self).__init__()
 
         if gray: in_channels = 1
@@ -40,13 +42,13 @@ class VGG(nn.Module):
         conv_layers = []
         for indx, (channels) in enumerate(cfg[vgg_name]):
             if channels == 'M':
-                conv_layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
+                conv_layers.append(utils_nets.apply_pool("max_pool", 2, 2))
             else:
-                conv_layers += [nn.Conv2d(in_channels, channels, kernel_size=3, padding=1),
-                                nn.BatchNorm2d(channels),
-                                nn.ReLU()]
                 if dropout and dropout_values[vgg_name][indx] != 0:
-                    conv_layers += [nn.Dropout2d(dropout_values[vgg_name][indx])]
+                    conv_layers.append(utils_nets.apply_conv(in_channels, channels, kernel=(3,3), activation='relu', std=ruido, dropout=dropout_values[vgg_name][indx], batchnorm=True))
+                else:
+                    conv_layers.append(utils_nets.apply_conv(in_channels, channels, kernel=(3,3), activation='relu', std=ruido, dropout=0.0, batchnorm=True))
+
                 in_channels = channels
         conv_layers += [nn.AvgPool2d(kernel_size=1, stride=1)]
         self.forward_conv = nn.Sequential(*conv_layers)
@@ -61,10 +63,10 @@ class VGG(nn.Module):
         return x
 
 
-def VGGModel(vgg_name, dropout, ruido, gray):
+def VGGModel(vgg_name, flat_size, dropout, ruido, gray, num_classes=2):
     if vgg_name not in cfg:
         assert False, 'No VGG Model with that name!'
     else:
-        my_model = VGG(model_name, dropout, ruido, gray)
+        my_model = VGG(vgg_name, flat_size, dropout, ruido, gray, num_classes=num_classes)
         my_model.net_type = "convolutional"
         return my_model

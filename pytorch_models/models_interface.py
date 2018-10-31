@@ -9,7 +9,7 @@ from pytorchlib.pytorch_models.mobilenetv2 import MobileNetv2Model
 from pytorchlib.pytorch_models.densenet import DenseNetModel
 from pytorchlib.pytorch_models.basic_nets import BasicModel
 
-def select_model(model_name, model_config=[], in_features=0, out_features=0, dropout=0.0, ruido=0.0, gray=0, growth_rate=0, out_type='', batchnorm=True, default_act="relu", data_parallel=False, pretrained=True):
+def select_model(model_name, model_config=[], flat_size=0, in_features=0, out_features=0, dropout=0.0, ruido=0.0, gray=0, growth_rate=0, out_type='', batchnorm=True, default_act="relu", data_parallel=False, pretrained=True):
     """ Model instantiator
     To instantiate models in a simple way
     Args:
@@ -19,12 +19,13 @@ def select_model(model_name, model_config=[], in_features=0, out_features=0, dro
             (look at the instantiators of each model for each case).
         in_features: How many input features enter in the model
         gray: If images were used in black and white (1) or not (0)
+        flat_size: size for the flatten/reshape in convolutional neural networks
     Returns:
         An instance of the selected model
     """
 
     if 'VGG' in model_name:
-        my_model = VGGModel(model_config, dropout, ruido, gray).cuda()
+        my_model = VGGModel(model_config, flat_size, dropout, ruido, gray, num_classes=out_features).cuda()
 
     elif 'ResNet' in model_name:
         my_model = ResNetModel(model_config, gray).cuda()
