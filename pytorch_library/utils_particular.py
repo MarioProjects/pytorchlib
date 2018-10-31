@@ -1,5 +1,7 @@
 import torch
 from torch import nn, optim
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
@@ -38,4 +40,4 @@ def strokes_to_img(in_strokes):
     X = np.array(fig.canvas.renderer._renderer)
     plt.close(fig)
 
-    return (cv2.resize(X, (256, 256)) / 255.)[::-1]
+    return (cv2.resize(X, (224, 224)) / 255.)[::-1]

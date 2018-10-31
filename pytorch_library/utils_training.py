@@ -92,9 +92,9 @@ def evaluate_accuracy_models(models, data, max_data=0):
         # Tengo que hacer el forward para cada modelo y ver que clases acierta
         for model_indx, model in enumerate(models):
             if model.net_type == "fully-connected":
-                model_out = model.forward(Variable(batch.view(batch.shape[0], -1)))
+                model_out = model.forward(Variable(batch.view(batch.shape[0], -1).cuda()))
             elif model.net_type == "convolutional":
-                model_out = model.forward(Variable(batch))
+                model_out = model.forward(Variable(batch.cuda()))
             else: assert False, "Please define your model type!"
 
             # Algunos modelos devuelven varias salidas como pueden ser la capa
@@ -107,11 +107,14 @@ def evaluate_accuracy_models(models, data, max_data=0):
             #  de las tuplas que continen los logits
             _, pred_label = torch.max(model_out.data, 1)
             # sumo todas las que tengo bien, que tienen el valor que toca
-            correct_cnt = (pred_label == target[:,0]).sum().item()
+            try:
+                correct_cnt = (pred_label.cuda() == target[:,0].cuda()).sum().item()
+            except IndexError:
+                correct_cnt = (pred_label.cuda()==target.cuda()).sum().item()
             correct_cnt_models[model_indx] += correct_cnt
 
         total_samples += batch.shape[0]
-        if max_data != 0 and max_data >= total_samples: break
+        if max_data != 0 and total_samples >= max_data: break
 
     accuracies = list(((np.array(correct_cnt_models) * 1.0) / total_samples)*100)
     if len(accuracies) == 1: return accuracies[0]

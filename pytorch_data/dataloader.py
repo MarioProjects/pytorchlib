@@ -60,5 +60,6 @@ def gen_quick_draw_doodle(df, pick_order, pick_per_epoch, batch_size, generator,
             inputs = inputs.permute(0,3,1,2)
 
             # Normalizamos los datos
-            inputs = custom_transforms.single_normalize(inputs, norm)
+            if norm != "":
+                inputs = custom_transforms.single_normalize(inputs, norm)
             yield inputs, labels

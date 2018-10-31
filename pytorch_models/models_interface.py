@@ -73,9 +73,18 @@ def select_model(model_name, model_config=[], in_features=0, out_features=0, dro
         if "DENSENET161" == model_config: my_model = models.densenet161(pretrained=pretrained)
         if "DENSENET201" == model_config: my_model = models.densenet201(pretrained=pretrained)
 
+
         my_model.net_type = "convolutional"
         # Si queremos reentrenar un modelo reemplazamos la ultima capa de salida
         if out_features:
+
+            # Here, we need to freeze all the network except the final layer. 
+            # We need to set requires_grad == False to freeze the parameters 
+            # so that the gradients are not computed in backward().
+            for param in my_model.parameters():
+                param.requires_grad = False
+
+            # Parameters of newly constructed modules have requires_grad=True by default
             num_ftrs = my_model.fc.in_features
             my_model.fc = nn.Linear(num_ftrs, out_features)
 

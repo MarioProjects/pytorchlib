@@ -213,13 +213,13 @@ def groups_gender(gray, seed=0, fold_test=0, batch_size=128, norm="None"):
     return train_samples, train_loader, test_samples, test_loader
 
 
-def quick_draw_doodle(seed=0, train_segment="0_10000", batch_size=100, norm="None", desired_img_size=(224, 224), evalution_mode=False):
+def quick_draw_doodle(seed=0, train_segment="0_10000", batch_size=100, norm="None", desired_img_size=(224, 224), evaluation_mode=False):
     '''
     LOAD Quick Draw Doodle DATASET
     Carga los dataos de Quick Draw Doodle - https://www.kaggle.com/c/quickdraw-doodle-recognition
     '''
 
-    if evalution_mode:
+    if evaluation_mode:
         data_type = "eval"
         probability_apply_transformations = 1
         transforms = albumentations.Compose([
