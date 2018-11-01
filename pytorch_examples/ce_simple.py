@@ -19,6 +19,7 @@ from pytorchlib.pytorch_models import models_interface
 from pytorchlib.pytorch_data import data_interface
 from pytorchlib.pytorch_library import utils_general, utils_training
 
+
 import argparse
 def parse_args():
     parser = argparse.ArgumentParser(description='Model train for Quick Draw Doodle Competition by Mario Parren~o. Msc student Universidad Politecnica de Valencia maparla@inf.upv.es . Enjoy!')
@@ -122,8 +123,8 @@ for indx,(epochs_now, lr_now) in enumerate(zip(epochs_steps, lr_steps)):
 """ ---- GUARDADO DE RESULTADOS Y LOGGING ---- """
 
 pathlib.Path(model_name_path).mkdir(parents=True, exist_ok=True)
-torch.save(best_model_state_dict, model_name_path+"/test_on_fold"+str(fold_test)+"_CE_Simple_checkpoint_state.pt")
-with open(model_name_path+"/test_on_fold"+str(fold_test)+"_CE_Simple_LOG.pkl", 'wb') as f:
+torch.save(best_model_state_dict, model_name_path+"CE_Simple_checkpoint_state.pt")
+with open(model_name_path+"CE_Simple_LOG.pkl", 'wb') as f:
     pickle.dump(results, f, pickle.HIGHEST_PROTOCOL)
 
 utils_general.slack_message("(CE Simple - Quick Draw Doodle) Accuracy modelo " + model_type + " - " + str(model_cfg) +
