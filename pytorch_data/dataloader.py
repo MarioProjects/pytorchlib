@@ -3,7 +3,6 @@ import torch
 import torch.utils.data as data
 import pytorchlib.pytorch_data.transforms as custom_transforms
 import pytorchlib.pytorch_library.utils_particular as utils_particular
-import constants
 
 class ConvolutionalDataset(data.Dataset):
 
@@ -40,7 +39,7 @@ class ConvolutionalDataset(data.Dataset):
         return len(self.labels)
 
 
-def gen_quick_draw_doodle(df, pick_order, pick_per_epoch, batch_size, generator, transforms, norm):
+def gen_quick_draw_doodle(df, pick_order, pick_per_epoch, NAME_TO_CLASS, batch_size, generator, transforms, norm):
     while True:  # Infinity loop
         pick_order = generator.permutation(pick_order)
         for i in range(pick_per_epoch):
@@ -49,7 +48,7 @@ def gen_quick_draw_doodle(df, pick_order, pick_per_epoch, batch_size, generator,
             out_imgs = list(map(utils_particular.strokes_to_img, dfs["drawing"]))
 
             inputs = np.array(out_imgs)[:, :, :, :3].astype(np.float32)
-            labels = np.array([constants.NAME_TO_CLASS[x] for x in dfs["word"]])
+            labels = np.array([NAME_TO_CLASS[x] for x in dfs["word"]])
 
             # Debemos aplicar las transformaciones pertinentes definidas en all_augmentations
             for indx, (sample) in enumerate(inputs):
