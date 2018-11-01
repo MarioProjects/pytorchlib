@@ -9,6 +9,8 @@ BATCHNORM2D_NAME = "BatchNorm2D"
 GAUSSIANNOISE_NAME = "GaussianNoise"
 DROPOUT1D_NAME = "Dropout1D"
 DROPOUT1D_NAME = "Dropout2D"
+MAXPOOL_NAME = "MAXPool"
+AVGPOOL_NAME = "AVGPool"
 ACT_RELU_NAME = "ACT_ReLU"
 ACT_SOFTMAX_NAME = "ACT_Softmax"
 ACT_LINEAR_NAME = "ACT_Linear"
@@ -97,10 +99,12 @@ def apply_DeConv(in_features, out_features, kernel, activation, std=0.0, dropout
     return nn.Sequential(*forward_list)
 
 
-def apply_pool(pool_type, kernel_size, stride_size):
-    if pool_type == "max_pool": return nn.MaxPool2d(kernel_size=kernel_size, stride=stride_size)
-    elif pool_type == "avg_pool": return nn.AvgPool2d(kernel_size=kernel_size, stride=stride_size)
+def apply_pool(pool_type, kernel_size, stride_size, name_append=""):
+    pool_list = []
+    if pool_type == "max_pool": pool_list.append((MAXPOOL_NAME + name_append, nn.MaxPool2d(kernel_size=kernel_size, stride=stride_size)))
+    elif pool_type == "avg_pool": pool_list.append((AVGPOOL_NAME + name_append, nn.AvgPool2d(kernel_size=kernel_size, stride=stride_size)))    
     else: assert False, "Not valid pool!"
+    return nn.Sequential(OrderedDict(pool_list))
 
 
 def apply_DePool(kernel):

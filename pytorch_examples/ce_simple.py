@@ -35,7 +35,7 @@ def parse_args():
 
 # model_type, model_cfg, optimizador = parse_args()
 model_type, model_cfg, optimizador = "Imagenet", "RESNET50", "SGD"
-num_classes = len(NAME_TO_CLASS)
+num_classes = 2
 
 print("\nEntrenando CE Simple con {} - {} utilizando {} - Quick Draw Doodle!)".format(model_type, str(model_cfg), optimizador))
 
@@ -46,6 +46,8 @@ torch.manual_seed(seed=seed)
 torch.cuda.manual_seed(seed=seed)
 
 batch_size = 64
+
+"""
 train_samples, train_loader, = data_interface.database_selector("QuickDraw", seed=0,
                                                  data_segment="0_10000", batch_size=batch_size,
                                                  norm='', desired_img_size=(224, 224),
@@ -55,6 +57,7 @@ val_samples, val_loader, = data_interface.database_selector("QuickDraw", seed=0,
                                                  data_segment="50000_52500", batch_size=batch_size,
                                                  norm='', desired_img_size=(224, 224),
                                                  evaluation_mode=True)
+"""
 
 """ ---- MODELOS ---- """
 

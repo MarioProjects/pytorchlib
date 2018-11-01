@@ -33,27 +33,37 @@ dropout_values = {
 
 # El flat size pude variar dependiendo del tamaño de entrada de las imagenes
 class VGG(nn.Module):
-    def __init__(self, vgg_name, flat_size, dropout, ruido, gray, num_classes=2):
+    def __init__(self, vgg_name, flat_size, dropout, ruido, gray, num_classes=2, custom_config=[]):
         super(VGG, self).__init__()
 
         if gray: in_channels = 1
         else: in_channels = 3
 
-        conv_layers = []
+        conv_layers, num_layers = [], 0
         for indx, (channels) in enumerate(cfg[vgg_name]):
+
+            last_layer = indx+1 == len(cfg[vgg_name]) or (indx+2 == len(cfg[vgg_name]) and cfg[vgg_name][-1] == "|")
+
             if channels == 'M':
-                conv_layers.append(utils_nets.apply_pool("max_pool", 2, 2))
+                if not last_layer: append2name = "_Conv" + str(num_layers-1)
+                else: append2name = "_Conv" + str(num_layers-1) + "_OUT"
+                conv_layers.append(utils_nets.apply_pool("max_pool", 2, 2, name_append=append2name))
             else:
+                if not last_layer: append2name = "_Conv" + str(num_layers)
+                else: append2name = "_Conv" + str(num_layers) + "_OUT"
                 if dropout and dropout_values[vgg_name][indx] != 0:
-                    conv_layers.append(utils_nets.apply_conv(in_channels, channels, kernel=(3,3), activation='relu', std=ruido, dropout=dropout_values[vgg_name][indx], batchnorm=True))
+                    conv_layers.append(utils_nets.apply_conv(in_channels, channels, kernel=(3,3), activation='relu', std=ruido, dropout=dropout_values[vgg_name][indx], batchnorm=True, name_append=append2name))
                 else:
-                    conv_layers.append(utils_nets.apply_conv(in_channels, channels, kernel=(3,3), activation='relu', std=ruido, dropout=0.0, batchnorm=True))
+                    conv_layers.append(utils_nets.apply_conv(in_channels, channels, kernel=(3,3), activation='relu', std=ruido, dropout=0.0, batchnorm=True, name_append=append2name))
 
                 in_channels = channels
-        conv_layers += [nn.AvgPool2d(kernel_size=1, stride=1)]
-        self.forward_conv = nn.Sequential(*conv_layers)
+                num_layers += 1
 
-        self.forward_linear = nn.Linear(flat_size, num_classes)
+        conv_layers.append(utils_nets.apply_pool("avg_pool", 1, 1, name_append="Reshape_OUT"))
+
+        self.forward_conv = nn.Sequential(*conv_layers)
+        self.forward_linear = layer = utils_nets.apply_linear(flat_size, num_classes, "linear", std=0.0,
+                                                dropout=0.0, batchnorm=True, name_append="fc_OUT")
 
 
     def forward(self, x):
