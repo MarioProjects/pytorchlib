@@ -39,6 +39,41 @@ class ConvolutionalDataset(data.Dataset):
         return len(self.labels)
 
 
+def dataloader_from_numpy(features, targets, batch_size, transforms=[], seed=0, norm=""):
+    """
+    Generador de loaders generico para numpy arrays
+    """
+
+    generator = np.random.RandomState(seed=seed)
+    pick_order = n_samples = len(features)
+    pick_per_epoch = n_samples // batch_size
+
+    print("""WARNING: This function receives the features with the form [batch, width, height, channels]
+            and internally transposes these features to [batch, channels, width, height]""")
+
+    while True:  # Infinity loop
+        pick_order = generator.permutation(pick_order)
+        for i in range(pick_per_epoch):
+            current_picks = pick_order[i*batch_size: (i+1)*batch_size]
+            current_features = features[current_picks]
+            current_targets = targets[current_picks]
+
+            # Debemos aplicar las transformaciones pertinentes definidas en transforms (albumentations)
+            if transforms!=[]:
+                for indx, (sample) in enumerate(current_features):
+                    current_features[indx] = custom_transforms.apply_albumentation(transforms, sample)
+
+            current_features = torch.from_numpy(current_features)
+            current_targets = torch.from_numpy(current_targets)
+
+            current_features = current_features.permute(0,3,1,2)
+
+            # Normalizamos los datos
+            if norm != "":
+                current_features = custom_transforms.single_normalize(current_features, norm)
+            yield current_features, current_targets
+
+
 def gen_quick_draw_doodle(df, pick_order, pick_per_epoch, NAME_TO_CLASS, batch_size, generator, transforms, norm):
     while True:  # Infinity loop
         pick_order = generator.permutation(pick_order)
