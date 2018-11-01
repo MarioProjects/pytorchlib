@@ -3,10 +3,12 @@ import torch.nn as nn
 from collections import OrderedDict
 
 LINEAR_NAME = "Linear"
+CONV2D_NAME = "Conv2D"
 BATCHNORM1D_NAME = "BatchNorm1D"
 BATCHNORM2D_NAME = "BatchNorm2D"
 GAUSSIANNOISE_NAME = "GaussianNoise"
-DROPOUT_NAME = "Dropout"
+DROPOUT1D_NAME = "Dropout1D"
+DROPOUT1D_NAME = "Dropout2D"
 ACT_RELU_NAME = "ACT_ReLU"
 ACT_SOFTMAX_NAME = "ACT_Softmax"
 ACT_LINEAR_NAME = "ACT_Linear"
@@ -65,20 +67,22 @@ def apply_linear(in_features, out_features, activation, std=0.0, dropout=0.0, ba
     if std != 0.0: forward_list.append((GAUSSIANNOISE_NAME + name_append, GaussianNoise(std=std)))
     name_activation, activation = get_activation(activation)
     forward_list.append((name_activation + name_append, activation))
-    if dropout != 0.0: forward_list.append((DROPOUT_NAME + name_append, nn.Dropout(dropout)))
+    if dropout != 0.0: forward_list.append((DROPOUT1D_NAME + name_append, nn.Dropout(dropout)))
     return nn.Sequential(OrderedDict(forward_list))
 
 
-def apply_conv(in_features, out_features, kernel, activation, std=0.0, dropout=0.0, batchnorm=True, stride=1, padding=1):
+def apply_conv(in_features, out_features, kernel=(3,3), activation="relu", std=0.0, dropout=0.0, batchnorm=True, stride=1, padding=1, name_append=""):
     # Diferencia entre extend y append https://stackoverflow.com/a/252711
     # define the sequential
     use_bias = False if batchnorm else True
-    forward_list=[nn.Conv2d(in_features, out_features, kernel, bias=use_bias, padding=padding, stride=stride)]
-    if batchnorm: forward_list.append(nn.BatchNorm2d(out_features))
-    if std != 0.0: forward_list.append(GaussianNoise(std=std))
-    forward_list.append(get_activation(activation))
-    if dropout != 0: forward_list.append(nn.Dropout2d(dropout))
-    return nn.Sequential(*forward_list)
+    forward_list = []
+    forward_list.append((CONV2D_NAME + name_append, nn.Conv2d(in_features, out_features, kernel, bias=use_bias, padding=padding, stride=stride)))
+    if batchnorm: forward_list.append((BATCHNORM2D_NAME + name_append, nn.BatchNorm2d(out_features)))
+    if std != 0.0: forward_list.append((GAUSSIANNOISE_NAME + name_append, GaussianNoise(std=std)))
+    name_activation, activation = get_activation(activation)
+    forward_list.append((name_activation + name_append, activation))
+    if dropout != 0.0: forward_list.append((DROPOUT2D_NAME + name_append, nn.Dropout(dropout)))
+    return nn.Sequential(OrderedDict(forward_list))
 
 
 def apply_DeConv(in_features, out_features, kernel, activation, std=0.0, dropout=0.0, batchnorm=True, stride=1, padding=1, output_padding=0):
@@ -93,9 +97,9 @@ def apply_DeConv(in_features, out_features, kernel, activation, std=0.0, dropout
     return nn.Sequential(*forward_list)
 
 
-def apply_pool(kernel, pool):
-    if pool == "max_pool": return nn.MaxPool2d(kernel)
-    elif pool == "avg_pool": return nn.AvgPool2d(kernel)
+def apply_pool(pool_type, kernel_size, stride_size):
+    if pool_type == "max_pool": return nn.MaxPool2d(kernel_size=kernel_size, stride=stride_size)
+    elif pool_type == "avg_pool": return nn.AvgPool2d(kernel_size=kernel_size, stride=stride_size)
     else: assert False, "Not valid pool!"
 
 

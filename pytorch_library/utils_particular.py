@@ -40,4 +40,4 @@ def strokes_to_img(in_strokes):
     X = np.array(fig.canvas.renderer._renderer)
     plt.close(fig)
 
-    return (cv2.resize(X, (224, 224)) / 255.)[::-1]
+    return (cv2.resize(X, (80, 80)) / 255.)[::-1]
