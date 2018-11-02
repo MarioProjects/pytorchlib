@@ -73,10 +73,10 @@ def apply_linear(in_features, out_features, activation, std=0.0, dropout=0.0, ba
     return nn.Sequential(OrderedDict(forward_list))
 
 
-def apply_conv(in_features, out_features, kernel=(3,3), activation="relu", std=0.0, dropout=0.0, batchnorm=True, stride=1, padding=1, name_append=""):
+def apply_conv(in_features, out_features, kernel=(3,3), activation="relu", std=0.0, dropout=0.0, batchnorm=True, stride=1, padding=0, name_append="", bias=True):
     # Diferencia entre extend y append https://stackoverflow.com/a/252711
     # define the sequential
-    use_bias = False if batchnorm else True
+    use_bias = False if batchnorm or not bias else True
     forward_list = []
     forward_list.append((CONV2D_NAME + name_append, nn.Conv2d(in_features, out_features, kernel, bias=use_bias, padding=padding, stride=stride)))
     if batchnorm: forward_list.append((BATCHNORM2D_NAME + name_append, nn.BatchNorm2d(out_features)))

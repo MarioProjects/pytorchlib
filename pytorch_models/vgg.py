@@ -7,6 +7,8 @@ from torch.autograd import Variable
 from pytorchlib.pytorch_library import utils_nets
 
 cfg = {
+    'MNISTSmallVGG': [16, 'M', 16, 'M', 16, 'M', 32, 'M'], # Usado en MNIST (28,28) -> FlatSize 32*1*1
+    
     'ExtraSmallMiniVGGv0': [16, 'M', 16, 'M', 16, 'M', 32, 'M', 32, 'M'],
     'ExtraSmallMiniVGGv1': [16, 16, 'M', 16, 16, 'M', 16,16, 'M', 32,32, 'M', 32,32, 'M'],
     'SmallVGGv0': [32, 'M', 64, 'M', 128, 'M', 256, 'M', 512, 'M'],
@@ -52,9 +54,9 @@ class VGG(nn.Module):
                 if not last_layer: append2name = "_Conv" + str(num_layers)
                 else: append2name = "_Conv" + str(num_layers) + "_OUT"
                 if dropout and dropout_values[vgg_name][indx] != 0:
-                    conv_layers.append(utils_nets.apply_conv(in_channels, channels, kernel=(3,3), activation='relu', std=ruido, dropout=dropout_values[vgg_name][indx], batchnorm=True, name_append=append2name))
+                    conv_layers.append(utils_nets.apply_conv(in_channels, channels, kernel=(3,3), activation='relu', std=ruido, padding=1, dropout=dropout_values[vgg_name][indx], batchnorm=True, name_append=append2name))
                 else:
-                    conv_layers.append(utils_nets.apply_conv(in_channels, channels, kernel=(3,3), activation='relu', std=ruido, dropout=0.0, batchnorm=True, name_append=append2name))
+                    conv_layers.append(utils_nets.apply_conv(in_channels, channels, kernel=(3,3), activation='relu', std=ruido, padding=1, dropout=0.0, batchnorm=True, name_append=append2name))
 
                 in_channels = channels
                 num_layers += 1

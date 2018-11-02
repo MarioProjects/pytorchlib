@@ -60,9 +60,9 @@ def train_simple_model(model, data, target, loss, optimizer, out_pos=-1):
     optimizer.zero_grad()
 
     if model.net_type == "fully-connected":
-        model_out = model.forward(Variable(data.view(data.shape[0], -1)))
+        model_out = model.forward(Variable(data.float().view(data.shape[0], -1)))
     elif model.net_type == "convolutional":
-        model_out = model.forward(Variable(data))
+        model_out = model.forward(Variable(data.float()))
 
     # Algunos modelos devuelven varias salidas como pueden ser la capa
     # reshape y los logits, etc... Para conocer la salida a utilizar en el
@@ -92,9 +92,9 @@ def evaluate_accuracy_models(models, data, max_data=0):
         # Tengo que hacer el forward para cada modelo y ver que clases acierta
         for model_indx, model in enumerate(models):
             if model.net_type == "fully-connected":
-                model_out = model.forward(Variable(batch.view(batch.shape[0], -1).cuda()))
+                model_out = model.forward(Variable(batch.float().view(batch.shape[0], -1).cuda()))
             elif model.net_type == "convolutional":
-                model_out = model.forward(Variable(batch.cuda()))
+                model_out = model.forward(Variable(batch.float().cuda()))
             else: assert False, "Please define your model type!"
 
             # Algunos modelos devuelven varias salidas como pueden ser la capa

@@ -9,7 +9,7 @@ from pytorchlib.pytorch_models.mobilenetv2 import MobileNetv2Model
 from pytorchlib.pytorch_models.densenet import DenseNetModel
 from pytorchlib.pytorch_models.basic_nets import BasicModel
 
-def select_model(model_name, model_config=[], flat_size=0, in_features=0, out_features=0, dropout=0.0, ruido=0.0, gray=0, growth_rate=0, out_type='', batchnorm=True, default_act="relu", data_parallel=False, pretrained=True):
+def select_model(model_name, model_config=[], flat_size=0, in_features=0, out_features=0, dropout=0.0, ruido=0.0, gray=0, growth_rate=0, out_type='', batchnorm=True, default_act="relu", data_parallel=False, pretrained=True, block_type=None):
     """ Model instantiator
     To instantiate models in a simple way
     Args:
@@ -28,7 +28,9 @@ def select_model(model_name, model_config=[], flat_size=0, in_features=0, out_fe
         my_model = VGGModel(model_config, flat_size, dropout, ruido, gray, num_classes=out_features).cuda()
 
     elif 'ResNet' in model_name:
-        my_model = ResNetModel(model_config, gray).cuda()
+        # model_config[0] -> list of configuration_blocks or string with predefined option
+        # model_config[1] -> list of configuration_maps or string with predefined option
+        my_model = ResNetModel(model_config[0], model_config[1], block_type, gray, flat_size=flat_size, num_classes=out_features).cuda()
 
     elif 'DenseNet' in model_name:
         if not growth_rate: assert False, "Growth rate is required for DenseNets!"

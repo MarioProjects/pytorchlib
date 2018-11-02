@@ -42,14 +42,15 @@ class ConvolutionalDataset(data.Dataset):
 def dataloader_from_numpy(features, targets, batch_size, transforms=[], seed=0, norm=""):
     """
     Generador de loaders generico para numpy arrays
+    transforms: lista con transformaciones albumentations (LISTA y no Compose!)
     """
 
     generator = np.random.RandomState(seed=seed)
     pick_order = n_samples = len(features)
     pick_per_epoch = n_samples // batch_size
 
-    print("""WARNING: This function receives the features with the form [batch, width, height, channels]
-            and internally transposes these features to [batch, channels, width, height]""")
+    #print("""WARNING: This function (dataloader_from_numpy) receives the features with the form [batch, width, height, channels]
+    #        and internally transposes these features to [batch, channels, width, height]""")
 
     while True:  # Infinity loop
         pick_order = generator.permutation(pick_order)
@@ -59,9 +60,16 @@ def dataloader_from_numpy(features, targets, batch_size, transforms=[], seed=0, 
             current_targets = targets[current_picks]
 
             # Debemos aplicar las transformaciones pertinentes definidas en transforms (albumentations)
+            current_features_transformed = []
             if transforms!=[]:
                 for indx, (sample) in enumerate(current_features):
-                    current_features[indx] = custom_transforms.apply_albumentation(transforms, sample)
+                    for transform in transforms:
+                        sample = custom_transforms.apply_albumentation(transform, sample)
+                    current_features_transformed.append(sample)
+
+            # Para evitar problemas con imagenes en blanco y negro (1 canal)
+            if current_features_transformed!=[]: current_features = np.array(current_features_transformed)
+            if len(current_features.shape) == 3: current_features = np.expand_dims(current_features, axis=3)
 
             current_features = torch.from_numpy(current_features)
             current_targets = torch.from_numpy(current_targets)
