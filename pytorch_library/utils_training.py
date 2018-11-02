@@ -71,7 +71,8 @@ def train_simple_model(model, data, target, loss, optimizer, out_pos=-1):
         model_out = model_out[out_pos]
 
     # Calculo el error obtenido
-    cost = loss(model_out, target)
+    try: cost = loss(model_out, target)
+    except: cost = loss(model_out, target[:,0])
     cost.backward()
 
     # Actualizamos pesos y gradientes
