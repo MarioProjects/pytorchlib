@@ -36,6 +36,7 @@ def parse_args():
 
 # model_type, model_cfg, optimizador = parse_args()
 model_type, model_cfg, optimizador = "Imagenet", "RESNET50", "SGD"
+slack_channel = "quick_draw_kaggle"
 num_classes = 2
 
 print("\nEntrenando CE Simple con {} - {} utilizando {} - Quick Draw Doodle!)".format(model_type, str(model_cfg), optimizador))
@@ -128,4 +129,4 @@ with open(model_name_path+"CE_Simple_LOG.pkl", 'wb') as f:
     pickle.dump(results, f, pickle.HIGHEST_PROTOCOL)
 
 utils_general.slack_message("(CE Simple - Quick Draw Doodle) Accuracy modelo " + model_type + " - " + str(model_cfg) +
-                            " utilizando " + optimizador +": " + str(np.max(np.array(results["log-acc"])))[0:5] + "%", "quick_draw_kaggle")
+                            " utilizando " + optimizador +": " + str(np.max(np.array(results["log-acc"])))[0:5] + "%", slack_channel)

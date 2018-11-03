@@ -28,6 +28,12 @@ def anneal_lr(redes, lr_init, total_epochs, current_epoch, optimizer_type, flag=
     return lr_new, redes_resultado
 
 
+def defrost_model_params(model):
+    # Funcion para descongelar redes!
+    for param in model.parameters():
+        param.requires_grad = True
+
+
 def loss_fn_kd_kldivloss(outputs, teacher_outputs, labels, temperature, alpha=0.9):
     """
     Compute the knowledge-distillation (KD) loss given outputs, labels.
@@ -71,7 +77,8 @@ def train_simple_model(model, data, target, loss, optimizer, out_pos=-1):
         model_out = model_out[out_pos]
 
     # Calculo el error obtenido
-    cost = loss(model_out, target)
+    try: cost = loss(model_out, target)
+    except: cost = loss(model_out, target[:,0])
     cost.backward()
 
     # Actualizamos pesos y gradientes

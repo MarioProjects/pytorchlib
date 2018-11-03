@@ -28,6 +28,7 @@ def select_model(model_name, model_config=[], flat_size=0, in_features=0, out_fe
         my_model = VGGModel(model_config, flat_size, dropout, ruido, gray, num_classes=out_features).cuda()
 
     elif 'ResNet' in model_name:
+        # Example: model = models_interface.select_model("ResNet", model_config=["Basic18","ExtraSmall"], flat_size=128*2*2, block_type="basic", gray=0, out_features=num_classes).cuda()
         # model_config[0] -> list of configuration_blocks or string with predefined option
         # model_config[1] -> list of configuration_maps or string with predefined option
         my_model = ResNetModel(model_config[0], model_config[1], block_type, gray, flat_size=flat_size, num_classes=out_features).cuda()
@@ -46,7 +47,7 @@ def select_model(model_name, model_config=[], flat_size=0, in_features=0, out_fe
         my_model = BasicModel(model_config, "Convolutional", in_features, gray=gray, out_type=out_type).cuda()
 
     elif 'Imagenet' in model_name:
-
+        # Example: model = models_interface.select_model("Imagenet", model_config="VGG11_BN", pretrained=True, out_features=num_classes).cuda()
         gray_transform = """You can transform gray images to fake 'RGB' with:
                             \ndata_transform = transforms.Compose([
                                 \ttransforms.ToTensor(),
@@ -102,10 +103,10 @@ def select_model(model_name, model_config=[], flat_size=0, in_features=0, out_fe
     return my_model
 
 
-def load_model(model_name, states_path="", gray=0, dropout=0.0, ruido=0.0, growth_rate=0, in_features=0, out_type='relu', model_config=[]):
+def load_model(model_name, model_config=[], states_path="", gray=0, dropout=0.0, ruido=0.0, growth_rate=0, in_features=0, flat_size=0, out_features=0, out_type='relu', block_type=None):
 
     if not os.path.exists(states_path): assert False, "Wrong Models_States Path!"
-    my_model = select_model(model_name, model_config=model_config, dropout=dropout, ruido=ruido, gray=gray, growth_rate=growth_rate, in_features=in_features, out_type=out_type)
+    my_model = select_model(model_name, model_config=model_config, dropout=dropout, ruido=ruido, gray=gray, growth_rate=growth_rate, flat_size=flat_size, in_features=in_features, out_type=out_type, block_type=block_type, out_features=out_features)
     model_state_dict = torch.load(states_path)
 
     # create new OrderedDict that does not contain `module.`
