@@ -28,6 +28,7 @@ def select_model(model_name, model_config=[], flat_size=0, in_features=0, out_fe
         my_model = VGGModel(model_config, flat_size, dropout, ruido, gray, num_classes=out_features).cuda()
 
     elif 'ResNet' in model_name:
+        # Example: model = models_interface.select_model("ResNet", model_config=["Basic18","ExtraSmall"], flat_size=128*2*2, block_type="basic", gray=0, out_features=num_classes).cuda()
         # model_config[0] -> list of configuration_blocks or string with predefined option
         # model_config[1] -> list of configuration_maps or string with predefined option
         my_model = ResNetModel(model_config[0], model_config[1], block_type, gray, flat_size=flat_size, num_classes=out_features).cuda()
@@ -46,7 +47,7 @@ def select_model(model_name, model_config=[], flat_size=0, in_features=0, out_fe
         my_model = BasicModel(model_config, "Convolutional", in_features, gray=gray, out_type=out_type).cuda()
 
     elif 'Imagenet' in model_name:
-
+        # Example: model = models_interface.select_model("Imagenet", model_config="VGG11_BN", pretrained=True, out_features=num_classes).cuda()
         gray_transform = """You can transform gray images to fake 'RGB' with:
                             \ndata_transform = transforms.Compose([
                                 \ttransforms.ToTensor(),
