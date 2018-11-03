@@ -80,17 +80,33 @@ def select_model(model_name, model_config=[], flat_size=0, in_features=0, out_fe
 
         my_model.net_type = "convolutional"
         # Si queremos reentrenar un modelo reemplazamos la ultima capa de salida
+
         if out_features:
 
-            # Here, we need to freeze all the network except the final layer. 
-            # We need to set requires_grad == False to freeze the parameters 
+            # Here, we need to freeze all the network except the final layer.
+            # We need to set requires_grad == False to freeze the parameters
             # so that the gradients are not computed in backward().
             for param in my_model.parameters():
                 param.requires_grad = False
 
             # Parameters of newly constructed modules have requires_grad=True by default
-            num_ftrs = my_model.fc.in_features
-            my_model.fc = nn.Linear(num_ftrs, out_features)
+            if hasattr(model, 'classifier'):
+                if len(model.classifier._modules)!=0:
+                    num_ftrs = model.classifier._modules[str(len(model.classifier._modules)-1)].in_features
+                    model.classifier._modules[str(len(model.classifier._modules)-1)] = nn.Linear(num_ftrs, out_features)
+                elif len(model.classifier._modules)==0:
+                    num_ftrs = model.classifier.in_features
+                    model.classifier = nn.Linear(num_ftrs, out_features)
+                else: assert False, "Check the model last linear!"
+            elif hasattr(model, 'fc'):
+                if len(model.fc._modules)!=0:
+                    num_ftrs = model.fc._modules[str(len(model.fc._modules)-1)].in_features
+                    model.fc._modules[str(len(model.fc._modules)-1)] = nn.Linear(num_ftrs, out_features)
+                elif len(model.fc._modules)==0:
+                    num_ftrs = model.fc.in_features
+                    model.fc = nn.Linear(num_ftrs, out_features)
+                else: assert False, "Check the model last linear!"
+            else: assert False, "Check the model last linear!"
 
         # https://pytorch.org/docs/stable/torchvision/models.html
         print("""\nWARNING: The images (3, 224,244) have to be loaded in to a range
