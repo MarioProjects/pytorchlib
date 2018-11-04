@@ -121,13 +121,15 @@ class Identity(nn.Module):
     def forward(self, x):
         return x
 
-def topk_classes(input, k):
+def topk_classes(input_probs, k):
     """
     Devuelve las k clases mas votadas de la entrada de mayor a menor probabilidad
     Para uso mas exhaustivo ir a https://pytorch.org/docs/stable/torch.html#torch.topk
     Ejemplo: si pasamos algo como [2, 4, 1, 8] con k=3 devolveria [3, 1, 0]
     """
-    probs_values, class_indxs = torch.topk(input, k)
+    if type(input_probs)==np.ndarray: 
+        input_probs = torch.from_numpy(input_probs)
+    probs_values, class_indxs = torch.topk(input_probs, k)
     return class_indxs
 
 def models_average(outputs, scheme, vector_solution=True):
