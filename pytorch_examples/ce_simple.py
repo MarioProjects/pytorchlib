@@ -71,6 +71,7 @@ model = models_interface.select_model("VGG", model_config="ExtraSmallMiniVGGv0",
 # Las ultimas 50 las haremos con annealing lineal
 epochs_steps = [50, 100, 100, 50]
 lr_steps = [0.1, 0.01, 0.001, 0.001]
+apply_lr_anneal_lineal = [False, False, False, True]
 
 # Vamos a utilizar la metrica del error cuadratico medio
 loss_ce = nn.CrossEntropyLoss()
@@ -118,7 +119,7 @@ for indx,(epochs_now, lr_now) in enumerate(zip(epochs_steps, lr_steps)):
             best_model_state_dict = model.state_dict()
 
         # Decrementamos el learning rate solo para cuando vamos a hacer el ultimo set de epochs -> (indx+1) == len(epochs_steps)
-        lr_new, model_optimizer = utils_training.anneal_lr([model], lr_now, epochs_now, epoch, optimizador, (indx+1) == len(epochs_steps))
+        lr_new, model_optimizer = utils_training.anneal_lr([model], lr_now, epochs_now, epoch, optimizador, flag=apply_lr_anneal_lineal[indx])
 
 
 """ ---- GUARDADO DE RESULTADOS Y LOGGING ---- """
