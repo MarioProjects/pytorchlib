@@ -90,18 +90,26 @@ def gen_quick_draw_doodle(df, pick_order, pick_per_epoch, NAME_TO_CLASS, batch_s
             dfs = df.iloc[c_pick]
             out_imgs = list(map(utils_particular.strokes_to_img, dfs["drawing"]))
 
-            inputs = np.array(out_imgs)[:, :, :, :3].astype(np.float32)
-            labels = np.array([NAME_TO_CLASS[x] for x in dfs["word"]])
+            current_features = np.array(out_imgs)[:, :, :, :3].astype(np.float32)
+            current_targets = np.array([NAME_TO_CLASS[x] for x in dfs["word"]])
 
             # Debemos aplicar las transformaciones pertinentes definidas en all_augmentations
-            for indx, (sample) in enumerate(inputs):
-                inputs[indx] = custom_transforms.apply_albumentation(transforms, sample)
+            current_features_transformed = []
+            if transforms!=[]:
+                for indx, (sample) in enumerate(current_features):
+                    for transform in transforms:
+                        sample = custom_transforms.apply_albumentation(transform, sample)
+                    current_features_transformed.append(sample)
 
-            inputs = torch.from_numpy(inputs)
-            labels = torch.from_numpy(labels)
-            inputs = inputs.permute(0,3,1,2)
+            # Para evitar problemas con imagenes en blanco y negro (1 canal)
+            if current_features_transformed!=[]: current_features = np.array(current_features_transformed)
+            if len(current_features.shape) == 3: current_features = np.expand_dims(current_features, axis=3)
+
+            current_features = torch.from_numpy(current_features)
+            current_targets = torch.from_numpy(current_targets)
+            current_features = current_features.permute(0,3,1,2)
 
             # Normalizamos los datos
             if norm != "":
-                inputs = custom_transforms.single_normalize(inputs, norm)
-            yield inputs, labels
+                current_features = custom_transforms.single_normalize(current_features, norm)
+            yield current_features, current_targets

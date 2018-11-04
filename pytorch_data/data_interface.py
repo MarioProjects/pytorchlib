@@ -1,6 +1,6 @@
 from .load_data import *
 
-def database_selector(db, gray=0, seed=0, fold_test=0, batch_size=128, norm="None", show_info=True, desired_img_size=(224, 224), data_segment="0_10000", evaluation_mode=False):
+def database_selector(db, gray=0, seed=0, fold_test=0, batch_size=128, norm=None, show_info=True, data_segment="0_10000", data_type="", transforms=[], NAME_TO_CLASS=""):
     train_samples, val_samples = False, False
     if db=="LFW":
         train_samples, train_loader, val_samples, val_loader = lfw_gender(gray, seed=seed, fold_test=fold_test, batch_size=batch_size, norm=norm)
@@ -9,7 +9,7 @@ def database_selector(db, gray=0, seed=0, fold_test=0, batch_size=128, norm="Non
     elif db =="GROUPS":
         train_samples, train_loader, val_samples, val_loader = groups_gender(gray, seed=seed, fold_test=fold_test, batch_size=batch_size, norm=norm)
     elif db =="QuickDraw":
-        train_samples, train_loader = quick_draw_doodle(seed=seed, train_segment=data_segment, batch_size=batch_size, norm=norm, desired_img_size=desired_img_size, evaluation_mode=evaluation_mode)
+        train_samples, train_loader = quick_draw_doodle(seed=seed, train_segment=data_segment, batch_size=batch_size, norm=norm, data_type=data_type, transforms=transforms, NAME_TO_CLASS=NAME_TO_CLASS)
     else: assert False, "Uknown database '" + str(db) + "'"
 
     if show_info:
