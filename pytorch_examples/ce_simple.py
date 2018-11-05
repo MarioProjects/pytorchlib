@@ -89,8 +89,8 @@ results["name"] = model_name_path
 results["log-loss"] = []
 results["log-acc"] = []
 
-data_train_per_epoch = 5000
-data_eval_per_epoch = 1000
+data_train_per_epoch = train_samples
+data_eval_per_epoch = val_samples
 
 """ ---- ENTRENAMIENTO DEL MODELO ---- """
 
