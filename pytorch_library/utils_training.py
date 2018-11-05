@@ -92,8 +92,12 @@ def evaluate_accuracy_models(models, data, max_data=0, topk=(1,)):
     # Si paso un modelo y topk(1,5) -> acc1, acc5,
     # Si paso dos modelo y topk(1,5) -> m1_acc1, m1_acc5, m2_acc1, m2_acc5
     with torch.no_grad():
-        
-        maxk = max(topk)
+
+        if type(topk)==int: 
+            maxk = topk
+            topk = (topk,)
+        else: maxk = max(topk)
+
         correct_models, total_samples = [0]*len(models), 0
         for batch_idx, (batch, target) in enumerate(data):
 
@@ -147,7 +151,7 @@ def train_discriminator(discriminator_net, discriminator_optimizer, real_data, f
     ############################
     # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
     ###########################
-    
+
     # 1.1 ----> Train with real
     # Reseteamos los gradientes
     discriminator_optimizer.zero_grad()
