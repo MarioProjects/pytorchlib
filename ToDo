@@ -1,12 +1,31 @@
- -> Hacer genericas las redes (poder pasar listas de configuración):
-    -> BasicNets Convolucional
-    -> DenseNet
- 
- - RECORDATORIO: Añadir atributo 'net_type' a todas las redes ("fully-connected", "convolutional")
- 
- - Hacer posible que pasemos una lista de configuracion de la red para inicializarla (VGG, ResNet, DenseNet, BasicNets)
- - Comentar todo estilo PEP8 (mirar proyecto Felix?)
- - Comprobar cuda available para usar cuda y torch.cuda.floatensor y demas -> 
+
+ --------------------------
+ #### IMPORTANCIA ALTA ####
+ --------------------------
+
+     -> Comentar todo estilo PEP8 (mirar proyecto Felix?)
+
+
+ ---------------------------
+ #### IMPORTANCIA MEDIA ####
+ ---------------------------
+
+    -> Hacer genericas las redes (poder pasar listas de configuración):
+        x BasicNets Convolucional
+        x DenseNet
+    -> Hacer posible que pasemos una lista de configuracion de la red para inicializarla (VGG, ResNet, DenseNet, BasicNets)
+
+
+ --------------------------
+ #### IMPORTANCIA BAJA ####
+ --------------------------
+
+    -> Comprobar cuda available para usar cuda y torch.cuda.floatensor y demas ->
             device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") DEPUES model.to(device)
- 
- 
+
+
+ -----------------------
+ #### RECORDATORIOS ####
+ -----------------------
+
+    -> Añadir atributo 'net_type' a todas las redes ("fully-connected", "convolutional")
