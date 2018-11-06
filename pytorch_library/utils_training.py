@@ -172,7 +172,6 @@ def topk_accuracy(output, target, topk=(1,)):
         res = []
         # then we look for each k summing 1s in the correct matrix for first k element.
         for k in topk:
-            correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
             res.append(correct[:k].view(-1).float().sum(0, keepdim=True))
         return res
 
