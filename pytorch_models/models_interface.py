@@ -90,23 +90,23 @@ def select_model(model_name, model_config=[], flat_size=0, in_features=0, out_fe
                 param.requires_grad = False
 
             # Parameters of newly constructed modules have requires_grad=True by default
-            if hasattr(model, 'classifier'):
-                if len(model.classifier._modules)!=0:
-                    num_ftrs = model.classifier._modules[str(len(model.classifier._modules)-1)].in_features
-                    model.classifier._modules[str(len(model.classifier._modules)-1)] = nn.Linear(num_ftrs, out_features)
-                elif len(model.classifier._modules)==0:
-                    num_ftrs = model.classifier.in_features
-                    model.classifier = nn.Linear(num_ftrs, out_features)
-                else: assert False, "Check the model last linear!"
-            elif hasattr(model, 'fc'):
-                if len(model.fc._modules)!=0:
-                    num_ftrs = model.fc._modules[str(len(model.fc._modules)-1)].in_features
-                    model.fc._modules[str(len(model.fc._modules)-1)] = nn.Linear(num_ftrs, out_features)
-                elif len(model.fc._modules)==0:
-                    num_ftrs = model.fc.in_features
-                    model.fc = nn.Linear(num_ftrs, out_features)
-                else: assert False, "Check the model last linear!"
-            else: assert False, "Check the model last linear!"
+            if hasattr(my_model, 'classifier'):
+                if len(my_model.classifier._modules)!=0:
+                    num_ftrs = my_model.classifier._modules[str(len(my_model.classifier._modules)-1)].in_features
+                    my_model.classifier._modules[str(len(my_model.classifier._modules)-1)] = nn.Linear(num_ftrs, out_features)
+                elif len(my_model.classifier._modules)==0:
+                    num_ftrs = my_model.classifier.in_features
+                    my_model.classifier = nn.Linear(num_ftrs, out_features)
+                else: assert False, "Check the my_model last linear!"
+            elif hasattr(my_model, 'fc'):
+                if len(my_model.fc._modules)!=0:
+                    num_ftrs = my_model.fc._modules[str(len(my_model.fc._modules)-1)].in_features
+                    my_model.fc._modules[str(len(my_model.fc._modules)-1)] = nn.Linear(num_ftrs, out_features)
+                elif len(my_model.fc._modules)==0:
+                    num_ftrs = my_model.fc.in_features
+                    my_model.fc = nn.Linear(num_ftrs, out_features)
+                else: assert False, "Check the my_model last linear!"
+            else: assert False, "Check the my_model last linear!"
 
         # https://pytorch.org/docs/stable/torchvision/models.html
         print("""\nWARNING: The images (3, 224,244) have to be loaded in to a range
