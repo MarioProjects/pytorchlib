@@ -65,14 +65,9 @@ model = models_interface.select_model(model_type, model_config=model_cfg, pretra
 
 """ ---- CONSTANTES DE NUESTRO PROGRAMA ---- """
 
-# Las ultimas 50 las haremos con annealing lineal
-epochs_steps = [50, 100, 100, 50]
-lr_steps = [0.1, 0.01, 0.001, 0.001]
-apply_lr_anneal_lineal = [False, False, False, True]
-
 # Vamos a utilizar la metrica del error cuadratico medio
 loss_ce = nn.CrossEntropyLoss()
-total_epochs = 1
+total_epochs = 100
 best_acc = 0.0
 
 model_name_path = "results/CE_Simple/"+optimizador+"/"+model_type+"/"+str(model_cfg_txt)+"/"
@@ -87,43 +82,41 @@ data_eval_per_epoch = val_samples
 
 """ ---- ENTRENAMIENTO DEL MODELO ---- """
 
-for indx,(epochs_now, lr_now) in enumerate(zip(epochs_steps, lr_steps)):
+model_optimizer = utils_training.get_optimizer(optimizador, model.parameters(), lr=lr_now)
+# https://pytorch.org/docs/stable/optim.html#torch.optim.lr_scheduler.ReduceLROnPlateau
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(model_optimizer, 'max', factor=0.5,
+            patience=7, cooldown=3, threshold=0.005, min_lr=0, verbose=True) # Queremos maximizar el accuracy
 
-    model_optimizer = utils_training.get_optimizer(optimizador, model.parameters(), lr=lr_now)
-    lr_new = lr_now
+for epoch in range(1, total_epochs+1):
 
-    for epoch in range(epochs_now):
+    total_loss, total_data_train = 0, 0
+    for batch_idx, data in enumerate(train_loader, 0):
+        batch_data, batch_target = data
+        batch_data = Variable(batch_data.cuda())
+        batch_target = Variable(batch_target.cuda())
+        total_loss += utils_training.train_simple_model(model, batch_data, batch_target, loss_ce, model_optimizer)
+        if total_data_train >= data_train_per_epoch: break
+        else: total_data_train += len(batch_data)
 
-        total_loss, total_data_train = 0, 0
-        for batch_idx, data in enumerate(train_loader, 0):
-            batch_data, batch_target = data
-            batch_data = Variable(batch_data.cuda())
-            batch_target = Variable(batch_target.cuda())
-            total_loss += utils_training.train_simple_model(model, batch_data, batch_target, loss_ce, model_optimizer)
-            if total_data_train >= data_train_per_epoch: break
-            else: total_data_train += len(batch_data)
+    curr_accuracy = utils_training.evaluate_accuracy_models_generator([model], val_loader, max_data=data_eval_per_epoch)
+    curr_loss = total_loss / total_data_train
+    print("Epoch {}: Learning Rate: {:.6f}, Loss: {:.6f}, Accuracy: {:.2f}".format(epoch, utils_training.get_current_lr(model_optimizer), curr_loss, curr_accuracy))
 
-        curr_accuracy = utils_training.evaluate_accuracy_models_generator([model], val_loader, max_data=data_eval_per_epoch)
-        curr_loss = total_loss / total_data_train
-        print("Epoch {}: Learning Rate: {:.6f}, Loss: {:.6f}, Accuracy: {:.2f}".format(total_epochs, lr_new, curr_loss, curr_accuracy))
+    results["log-loss"].append(curr_loss)
+    results["log-acc"].append(curr_accuracy)
 
-        results["log-loss"].append(curr_loss)
-        results["log-acc"].append(curr_accuracy)
-        total_epochs += 1
+    if curr_accuracy > best_acc:
+        best_acc = curr_accuracy
+        best_model_state_dict = model.state_dict()
 
-        if curr_accuracy > best_acc:
-            best_acc = curr_accuracy
-            best_model_state_dict = model.state_dict()
-
-        # Decrementamos el learning rate solo para cuando vamos a hacer el ultimo set de epochs -> (indx+1) == len(epochs_steps)
-        lr_new, model_optimizer = utils_training.anneal_lr([model], lr_now, epochs_now, epoch, optimizador, flag=apply_lr_anneal_lineal[indx])
+    scheduler.step(curr_accuracy)
 
 
 """ ---- GUARDADO DE RESULTADOS Y LOGGING ---- """
 
 pathlib.Path(model_name_path).mkdir(parents=True, exist_ok=True)
-torch.save(best_model_state_dict, model_name_path+"CE_Simple_checkpoint_state.pt")
-with open(model_name_path+"CE_Simple_LOG.pkl", 'wb') as f:
+torch.save(best_model_state_dict, model_name_path+"CE_Simple_lrPlateau_checkpoint_state.pt")
+with open(model_name_path+"CE_Simple_lrPlateau_LOG.pkl", 'wb') as f:
     pickle.dump(results, f, pickle.HIGHEST_PROTOCOL)
 
 utils_general.slack_message("(CE Simple - Quick Draw Doodle) Accuracy modelo " + model_type + " - " + str(model_cfg_txt) +

@@ -2,12 +2,16 @@ import os
 import cv2
 import pandas as pd
 import json
+import numpy as np
+
+import torch
 
 import pytorchlib.pytorch_data.transforms as custom_transforms
 import pytorchlib.pytorch_library.utils_particular as utils_particular
 import pytorchlib.pytorch_library.utils_training as utils_training
 
 BASE_SIZE = 256
+DP_DIR = "/home/maparla/DeepLearning/KaggleDatasets/quick_draw_doodle/shuffle-csvs/"
 
 def draw_cv2(raw_strokes, size=256, lw=6, time_color=True):
     img = np.zeros((BASE_SIZE, BASE_SIZE), np.uint8)
@@ -38,15 +42,17 @@ def image_generator_doodle(size, batch_size, ks, transforms=[], norm="", lw=6, t
                     for indx, (sample) in enumerate(x):
                         for transform in transforms:
                             sample = custom_transforms.apply_albumentation(transform, sample)
-                        xt.append(sample)
+                        sample = np.array(sample)
+                        xt.append(sample.reshape(sample.shape[0], sample.shape[1], 1))
                 if xt!=[]: x = np.array(xt)
                 x = torch.from_numpy(x)
                 x = x.permute(0,3,1,2) # Necesitamos los canales en la segunda posicion
 
-                y = torch.from_numpy(utils_training.to_categorical(df.y, num_classes=num_classes))
+                #y = torch.from_numpy(utils_training.to_categorical(df.y, num_classes=num_classes))
+                y = torch.from_numpy(np.array(df.y)) # Crossentropy de Pytorch no trabaja one hot!
                 # Normalizamos los datos
                 if norm != "":
-                    current_features = custom_transforms.single_normalize(current_features, norm)
+                    x = custom_transforms.single_normalize(x, norm)
                 yield x, y
 
 def df_to_image_array_doodle(df, size, lw=6, time_color=True, transforms=[], norm=""):
@@ -66,5 +72,5 @@ def df_to_image_array_doodle(df, size, lw=6, time_color=True, transforms=[], nor
     x = x.permute(0,3,1,2) # Necesitamos los canales en la segunda posicion
     # Normalizamos los datos
     if norm != "":
-        current_features = custom_transforms.single_normalize(current_features, norm)
+        x = custom_transforms.single_normalize(x, norm)
     return x

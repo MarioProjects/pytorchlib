@@ -12,7 +12,7 @@ import torch
 import torch.utils.data as torchdata
 from torch import nn, optim
 
-from pytorchlib.pytorch_data.dataloader import ConvolutionalDataset, gen_quick_draw_doodle
+from pytorchlib.pytorch_data.dataloader import ConvolutionalDataset
 import pytorchlib.pytorch_data.transforms as custom_transforms
 
 import scipy.io
@@ -211,24 +211,3 @@ def groups_gender(gray, seed=0, fold_test=0, batch_size=128, norm="None"):
     test_samples = len(te_feat)
 
     return train_samples, train_loader, test_samples, test_loader
-
-
-def quick_draw_doodle(seed=0, train_segment="0_10000", batch_size=100, norm=None, data_type="", transforms=[], NAME_TO_CLASS=""):
-    '''
-    LOAD Quick Draw Doodle DATASET
-    Carga los dataos de Quick Draw Doodle - https://www.kaggle.com/c/quickdraw-doodle-recognition
-    data_type: One of "train" or "eval"
-    '''
-
-    data_path = '/home/maparla/DeepLearning/KaggleDatasets/quick_draw_doodle/train_simplified_groups/'
-    df = pd.read_csv(data_path + data_type + '_'+train_segment+'.csv', sep="\t", encoding='utf-8')
-
-    generator = np.random.RandomState(seed=seed)
-
-    n_samples = df.shape[0]
-
-    pick_order = np.arange(n_samples)
-    pick_per_epoch = n_samples // batch_size
-
-    dataloaders = gen_quick_draw_doodle(df, pick_order, pick_per_epoch, NAME_TO_CLASS, batch_size, generator, transforms, norm)
-    return len(df), dataloaders

@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import numpy as np
 
 #### Flujo normal para generar el submission
 """
@@ -11,7 +12,7 @@ print('Test array memory {:.2f} GB'.format(x_test.nbytes / 1024.**3 ))
 
 test_predictions = model.predict(x_test, batch_size=128, verbose=1)
 
-top3 = preds2catids(test_predictions)
+top3 = preds2catids(test_predictions) -- Utilizar np.array(predictions) si pytorch
 top3.head()
 top3.shape
 
