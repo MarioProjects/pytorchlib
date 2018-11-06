@@ -40,11 +40,7 @@ class ConvolutionalDataset(data.Dataset):
         return len(self.labels)
 
 
-<<<<<<< HEAD
 def dataloader_from_numpy(features, targets, batch_size, transforms=[], seed=0, norm="", num_classes=0):
-=======
-def dataloader_from_numpy(features, targets, batch_size, transforms=[], seed=0, norm=""):
->>>>>>> 6230b436c9d5417e34a0f0e4aef543639a20bc2a
     """
     Generador de loaders generico para numpy arrays
     transforms: lista con transformaciones albumentations (LISTA y no Compose!)
@@ -77,45 +73,9 @@ def dataloader_from_numpy(features, targets, batch_size, transforms=[], seed=0, 
             if len(current_features.shape) == 3: current_features = np.expand_dims(current_features, axis=3)
 
             current_features = torch.from_numpy(current_features)
-<<<<<<< HEAD
             current_targets = utils_training.to_categorical(current_targets, num_classes=num_classes)
-=======
->>>>>>> 6230b436c9d5417e34a0f0e4aef543639a20bc2a
             current_targets = torch.from_numpy(current_targets)
 
-            current_features = current_features.permute(0,3,1,2)
-
-            # Normalizamos los datos
-            if norm != "":
-                current_features = custom_transforms.single_normalize(current_features, norm)
-            yield current_features, current_targets
-
-
-def gen_quick_draw_doodle(df, pick_order, pick_per_epoch, NAME_TO_CLASS, batch_size, generator, transforms, norm):
-    while True:  # Infinity loop
-        pick_order = generator.permutation(pick_order)
-        for i in range(pick_per_epoch):
-            c_pick = pick_order[i*batch_size: (i+1)*batch_size]
-            dfs = df.iloc[c_pick]
-            out_imgs = list(map(utils_particular.strokes_to_img, dfs["drawing"]))
-
-            current_features = np.array(out_imgs)[:, :, :, :3].astype(np.float32)
-            current_targets = np.array([NAME_TO_CLASS[x] for x in dfs["word"]])
-
-            # Debemos aplicar las transformaciones pertinentes definidas en all_augmentations
-            current_features_transformed = []
-            if transforms!=[]:
-                for indx, (sample) in enumerate(current_features):
-                    for transform in transforms:
-                        sample = custom_transforms.apply_albumentation(transform, sample)
-                    current_features_transformed.append(sample)
-
-            # Para evitar problemas con imagenes en blanco y negro (1 canal)
-            if current_features_transformed!=[]: current_features = np.array(current_features_transformed)
-            if len(current_features.shape) == 3: current_features = np.expand_dims(current_features, axis=3)
-
-            current_features = torch.from_numpy(current_features)
-            current_targets = torch.from_numpy(current_targets)
             current_features = current_features.permute(0,3,1,2)
 
             # Normalizamos los datos
