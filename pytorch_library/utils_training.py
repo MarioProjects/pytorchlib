@@ -109,7 +109,7 @@ def simple_target_creator(samples, value):
     return Variable(torch.ones(samples, 1)).type(torch.cuda.FloatTensor)*value
 
 
-def train_simple_model(model, data, target, loss, optimizer, out_pos=-1):
+def train_simple_model(model, data, target, loss, optimizer, out_pos=-1, target_one_hot=False):
     # Losses: https://pytorch.org/docs/stable/nn.html
     model.train()
     optimizer.zero_grad()
@@ -125,6 +125,8 @@ def train_simple_model(model, data, target, loss, optimizer, out_pos=-1):
     if type(model_out) is list or type(model_out) is tuple:
         model_out = model_out[out_pos]
 
+    if target_one_hot: _, target = target.max(dim=1)
+
     # Calculo el error obtenido
     # Cuidado con la codificacion one hot! https://discuss.pytorch.org/t/runtimeerror-multi-target-not-supported-newbie/10216/8
     try: cost = loss(model_out, target)
@@ -137,8 +139,8 @@ def train_simple_model(model, data, target, loss, optimizer, out_pos=-1):
     return cost.item()
 
 
-def evaluate_accuracy_models_generator(models, data, max_data=0, topk=(1,)):
-    """Computes the accuracy over the k top predictions for the specified values of k"""
+def evaluate_accuracy_models_generator(models, data, max_data=0, topk=(1,), target_one_hot=False):
+    """Computes the accuracy (sobre 1) over the k top predictions for the specified values of k"""
     # Si paso un modelo y topk(1,5) -> acc1, acc5,
     # Si paso dos modelo y topk(1,5) -> m1_acc1, m1_acc5, m2_acc1, m2_acc5
     with torch.no_grad():
@@ -151,6 +153,7 @@ def evaluate_accuracy_models_generator(models, data, max_data=0, topk=(1,)):
         correct_models, total_samples = [0]*len(models), 0
         for batch_idx, (batch, target) in enumerate(data):
 
+            if target_one_hot: _, target = target.max(dim=1)
             batch_size = target.size(0)
 
             # calculo predicciones para el error de test de todos los modelos
@@ -176,8 +179,7 @@ def evaluate_accuracy_models_generator(models, data, max_data=0, topk=(1,)):
 
                 res_topk = []
                 for k in topk:
-                    correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
-                    res_topk.append(correct_k.mul_(100.0))
+                    res_topk.append(correct[:k].view(-1).float().sum(0, keepdim=True))
                 res_topk = np.array(res_topk)
 
                 correct_models[model_indx] += res_topk
