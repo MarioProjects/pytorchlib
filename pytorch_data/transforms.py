@@ -191,6 +191,10 @@ def normalize(tr_feat, te_feat, norm):
         te_feat-=(max_val-min_val)
         te_feat/=(max_val-min_val)
 
+    elif norm=='255':
+        tr_feats/=255
+        te_feats/=255
+
     else: assert False, "Invalid Normalization"
 
     return tr_feat, te_feat
@@ -210,6 +214,9 @@ def single_normalize(feats, norm):
         feats*=2
         feats-=(max_val-min_val)
         feats/=(max_val-min_val)
+
+    elif norm=='255':
+        feats/=255
 
     elif norm==None: pass
     else: raise NotImplemented

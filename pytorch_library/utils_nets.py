@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn as nn
 from collections import OrderedDict
@@ -120,39 +121,49 @@ class Identity(nn.Module):
     def forward(self, x):
         return x
 
-def topk_classes(input, k):
+def topk_classes(input_probs, k):
     """
     Devuelve las k clases mas votadas de la entrada de mayor a menor probabilidad
     Para uso mas exhaustivo ir a https://pytorch.org/docs/stable/torch.html#torch.topk
     Ejemplo: si pasamos algo como [2, 4, 1, 8] con k=3 devolveria [3, 1, 0]
     """
-    probs_values, class_indxs = torch.topk(input, k)
+    if type(input_probs)==np.ndarray: 
+        input_probs = torch.from_numpy(input_probs)
+    probs_values, class_indxs = torch.topk(input_probs, k)
     return class_indxs
 
-def models_average(outputs, scheme):
+def models_average(outputs, scheme, vector_solution=True):
     """
-    Dada una lista de salidas (outputs) promedia los resultados obtenidos
-    teniendo dos posibildiades:
+    Dada una lista de salidas (outputs) a las que se 
+    les aplica previamente la funcion softmax promedia dichas salidas
+    teniendo dos posibilidades:
         - voting: donde la clase de mayor probabilidad vota 1 y el resto 0
         - sum: se suma la probabilidad de todas las clases para decidir
+    vector_solution indica si devolvemos un vector con las clases de mayor valor
+    o el resultado de aplicar el esquema
     """
     if not (type(outputs) is list or type(outputs) is tuple):
         assert False, "List of diferents outputs needed!"
 
-    # Si no utilizamos el numpy() el tensor va por referencia y
-    # modifica la entrada original
+    # El esquema de la suma sumamos las probabilidades
+    # de las salidas que se nos proporcionan
     if scheme == "sum":
-        result = outputs[0].data.cpu().numpy()
+        result = outputs[0]
         for output in outputs[1:]:
-            result += output.data.cpu().numpy()
-        return torch.from_numpy(result)
+            result += output
+
+    # En el esquema por votacion cada clase vota su clase de mayor probabilidad
+    # y finalmente la clase mas votada por las salidas es la resultante
     elif scheme == "voting":
-        # Es necesario tratar los outputs para pasarlos a codificacion 1 y 0s
-        # https://discuss.pytorch.org/t/keep-the-max-value-of-the-array-and-0-the-others/14480/7
-        view = outputs[0].view(-1, 5)
-        result = (view == view.max(dim=1, keepdim=True)[0]).view_as(outputs[0])
+        # one_zeros es la matriz de salida transformada a 1 para la clase de mayor
+        # probabilidad y 0s en el resto
+        one_zeros = (outputs[0] == outputs[0].max(axis=1)[:,None]).astype(int)
+        result = one_zeros
         for output in outputs[1:]:
-            view = output.view(-1, 5)
-            result += (view == view.max(dim=1, keepdim=True)[0]).view_as(output)
-        return result
+            one_zeros = (output == output.max(axis=1)[:,None]).astype(int)
+            result += one_zeros
+
     else: assert False, "Ivalid model average scheme!"
+        
+    if vector_solution: return np.argmax(result, axis=1)
+    return result

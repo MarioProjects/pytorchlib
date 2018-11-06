@@ -39,7 +39,11 @@ model_type, model_cfg, optimizador = "Imagenet", "RESNET50", "SGD"
 slack_channel = "quick_draw_kaggle"
 num_classes = 2
 
-print("\nEntrenando CE Simple con {} - {} utilizando {} - Quick Draw Doodle!)".format(model_type, str(model_cfg), optimizador))
+if type(model_cfg)==list or type(model_cfg)==tuple:
+    model_cfg_txt = '_'.join(model_cfg)
+else: model_cfg_txt = model_cfg
+
+print("\nEntrenando CE Simple con {} - {} utilizando {} - Quick Draw Doodle!)".format(model_type, str(model_cfg_txt), optimizador))
 
 """ --- CARGA DE DATOS --- """
 # Establecemos una semilla para la replicacion de los experimentos correctamente
@@ -64,7 +68,7 @@ val_samples, val_loader, = data_interface.database_selector("QuickDraw", seed=0,
 """ ---- MODELOS ---- """
 
 #model = models_interface.select_model(model_type, model_config="RESNET18", pretrained=True, out_features=num_classes).cuda()
-model = models_interface.select_model("VGG", model_config="ExtraSmallMiniVGGv0", flat_size=32*2*2, out_features=num_classes).cuda()
+model = models_interface.select_model(model_type, model_config=model_cfg, flat_size=32*2*2, out_features=num_classes).cuda()
 
 """ ---- CONSTANTES DE NUESTRO PROGRAMA ---- """
 
@@ -78,15 +82,15 @@ loss_ce = nn.CrossEntropyLoss()
 total_epochs = 1
 best_acc = 0.0
 
-model_name_path = "results/CE_Simple/"+optimizador+"/"+model_type+"/"+str(model_cfg)+"/"
+model_name_path = "results/CE_Simple/"+optimizador+"/"+model_type+"/"+str(model_cfg_txt)+"/"
 
 results = {}
 results["name"] = model_name_path
 results["log-loss"] = []
 results["log-acc"] = []
 
-data_train_per_epoch = 5000
-data_eval_per_epoch = 1000
+data_train_per_epoch = train_samples
+data_eval_per_epoch = val_samples
 
 """ ---- ENTRENAMIENTO DEL MODELO ---- """
 
@@ -129,5 +133,5 @@ torch.save(best_model_state_dict, model_name_path+"CE_Simple_checkpoint_state.pt
 with open(model_name_path+"CE_Simple_LOG.pkl", 'wb') as f:
     pickle.dump(results, f, pickle.HIGHEST_PROTOCOL)
 
-utils_general.slack_message("(CE Simple - Quick Draw Doodle) Accuracy modelo " + model_type + " - " + str(model_cfg) +
+utils_general.slack_message("(CE Simple - Quick Draw Doodle) Accuracy modelo " + model_type + " - " + str(model_cfg_txt) +
                             " utilizando " + optimizador +": " + str(np.max(np.array(results["log-acc"])))[0:5] + "%", slack_channel)

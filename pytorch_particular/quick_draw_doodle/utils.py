@@ -3,6 +3,12 @@ import pandas as pd
 
 #### Flujo normal para generar el submission
 """
+test = pd.read_csv(os.path.join(INPUT_DIR, 'test_simplified.csv'))
+test.head()
+x_test = df_to_image_array_doodle(test, size)
+print(test.shape, x_test.shape)
+print('Test array memory {:.2f} GB'.format(x_test.nbytes / 1024.**3 ))
+
 test_predictions = model.predict(x_test, batch_size=128, verbose=1)
 
 top3 = preds2catids(test_predictions)

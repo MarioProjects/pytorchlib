@@ -130,43 +130,60 @@ def train_simple_model(model, data, target, loss, optimizer, out_pos=-1):
     return cost.item()
 
 
-def evaluate_accuracy_models(models, data, max_data=0):
+def evaluate_accuracy_models(models, data, max_data=0, topk=(1,)):
+    """Computes the accuracy over the k top predictions for the specified values of k"""
+    # Si paso un modelo y topk(1,5) -> acc1, acc5,
+    # Si paso dos modelo y topk(1,5) -> m1_acc1, m1_acc5, m2_acc1, m2_acc5
+    with torch.no_grad():
 
-    for model in models:
-        model.eval()
+        if type(topk)==int: 
+            maxk = topk
+            topk = (topk,)
+        else: maxk = max(topk)
 
-    correct_cnt_models, total_samples = [0]*len(models), 0
-    for batch_idx, (batch, target) in enumerate(data):
+        correct_models, total_samples = [0]*len(models), 0
+        for batch_idx, (batch, target) in enumerate(data):
 
-        # calculo predicciones para el error de test de todos los modelos
-        # Tengo que hacer el forward para cada modelo y ver que clases acierta
-        for model_indx, model in enumerate(models):
-            if model.net_type == "fully-connected":
-                model_out = model.forward(Variable(batch.float().view(batch.shape[0], -1).cuda()))
-            elif model.net_type == "convolutional":
-                model_out = model.forward(Variable(batch.float().cuda()))
-            else: assert False, "Please define your model type!"
+            batch_size = target.size(0)
 
-            # Algunos modelos devuelven varias salidas como pueden ser la capa
-            # reshape y los logits, etc... Por lo que se establece el standar
-            # de que la ultima salida sean los logits del modelo para hacer la clasificacion
-            if type(model_out) is list or type(model_out) is tuple:
-                model_out = model_out[-1]
+            # calculo predicciones para el error de test de todos los modelos
+            # Tengo que hacer el forward para cada modelo y ver que clases acierta
+            for model_indx, model in enumerate(models):
+                if model.net_type == "fully-connected":
+                    model_out = model.forward(Variable(batch.float().view(batch.shape[0], -1).cuda()))
+                elif model.net_type == "convolutional":
+                    model_out = model.forward(Variable(batch.float().cuda()))
+                else: assert False, "Please define your model type!"
 
-            # Transformamos los logits a salida con el indice con el mayor valor
-            #  de las tuplas que continen los logits
-            _, pred_label = torch.max(model_out.data, 1)
-            # sumo todas las que tengo bien, que tienen el valor que toca
-            try:
-                correct_cnt = (pred_label.cuda() == target[:,0].cuda()).sum().item()
-            except IndexError:
-                correct_cnt = (pred_label.cuda()==target.cuda()).sum().item()
-            correct_cnt_models[model_indx] += correct_cnt
+                # Algunos modelos devuelven varias salidas como pueden ser la capa
+                # reshape y los logits, etc... Por lo que se establece el standar
+                # de que la ultima salida sean los logits del modelo para hacer la clasificacion
+                if type(model_out) is list or type(model_out) is tuple:
+                    model_out = model_out[-1]
 
-        total_samples += batch.shape[0]
-        if max_data != 0 and total_samples >= max_data: break
+                # Transformamos los logits a salida con el indice con el mayor valor
+                #  de las tuplas que continen los logits
+                _, pred = model_out.topk(maxk, 1, True, True)
+                pred = pred.t()
+                correct = pred.eq(target.cuda().view(1, -1).expand_as(pred.cuda()))
 
-    accuracies = list(((np.array(correct_cnt_models) * 1.0) / total_samples)*100)
+                res_topk = []
+                for k in topk:
+                    correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
+                    res_topk.append(correct_k.mul_(100.0))
+                res_topk = np.array(res_topk)
+
+                correct_models[model_indx] += res_topk
+
+            total_samples += batch_size
+            if max_data != 0 and total_samples >= max_data: break
+
+    accuracies = []
+    for result_model in correct_models:
+        for topkres in result_model:
+            accuracies.append((topkres*1.0)/total_samples)
+
+    #accuracies = list(((np.array(correct_models) * 1.0) / total_samples))
     if len(accuracies) == 1: return accuracies[0]
     return accuracies
 
@@ -177,7 +194,7 @@ def train_discriminator(discriminator_net, discriminator_optimizer, real_data, f
     ############################
     # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
     ###########################
-    
+
     # 1.1 ----> Train with real
     # Reseteamos los gradientes
     discriminator_optimizer.zero_grad()

@@ -40,7 +40,11 @@ class ConvolutionalDataset(data.Dataset):
         return len(self.labels)
 
 
+<<<<<<< HEAD
 def dataloader_from_numpy(features, targets, batch_size, transforms=[], seed=0, norm="", num_classes=0):
+=======
+def dataloader_from_numpy(features, targets, batch_size, transforms=[], seed=0, norm=""):
+>>>>>>> 6230b436c9d5417e34a0f0e4aef543639a20bc2a
     """
     Generador de loaders generico para numpy arrays
     transforms: lista con transformaciones albumentations (LISTA y no Compose!)
@@ -73,7 +77,10 @@ def dataloader_from_numpy(features, targets, batch_size, transforms=[], seed=0, 
             if len(current_features.shape) == 3: current_features = np.expand_dims(current_features, axis=3)
 
             current_features = torch.from_numpy(current_features)
+<<<<<<< HEAD
             current_targets = utils_training.to_categorical(current_targets, num_classes=num_classes)
+=======
+>>>>>>> 6230b436c9d5417e34a0f0e4aef543639a20bc2a
             current_targets = torch.from_numpy(current_targets)
 
             current_features = current_features.permute(0,3,1,2)
