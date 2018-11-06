@@ -11,7 +11,7 @@ import pytorchlib.pytorch_library.utils_particular as utils_particular
 import pytorchlib.pytorch_library.utils_training as utils_training
 
 BASE_SIZE = 256
-DP_DIR = "/home/maparla/DeepLearning/KaggleDatasets/quick_draw_doodle/shuffle-csvs/"
+SHUFFLED_CSVs_DIR = "/home/maparla/DeepLearning/KaggleDatasets/quick_draw_doodle/shuffle-csvs/"
 
 def draw_cv2(raw_strokes, size=256, lw=6, time_color=True):
     img = np.zeros((BASE_SIZE, BASE_SIZE), np.uint8)
@@ -28,7 +28,7 @@ def draw_cv2(raw_strokes, size=256, lw=6, time_color=True):
 def image_generator_doodle(size, batch_size, ks, transforms=[], norm="", lw=6, time_color=True, num_classes=340):
     while True:
         for k in np.random.permutation(ks):
-            filename = os.path.join(DP_DIR, 'train_k{}.csv.gz'.format(k))
+            filename = os.path.join(SHUFFLED_CSVs_DIR, 'train_k{}.csv.gz'.format(k))
             for df in pd.read_csv(filename, chunksize=batch_size):
                 df['drawing'] = df['drawing'].apply(json.loads)
                 x = np.zeros((len(df), size, size, 1))
