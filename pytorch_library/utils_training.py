@@ -139,13 +139,50 @@ def train_simple_model(model, data, target, loss, optimizer, out_pos=-1, target_
     return cost.item()
 
 
+# INPUTS: output have shape of [batch_size, category_count]
+#    and target in the shape of [batch_size] * there is only one true class for each sample
+# topk is tuple of classes to be included in the precision
+# topk have to a tuple so if you are giving one number, do not forget the comma
+def topk_accuracy(output, target, topk=(1,)):
+    """Computes the accuracy over the k top predictions for the specified values of k"""
+    #we do not need gradient calculation for those
+    with torch.no_grad():
+    #we will use biggest k, and calculate all precisions from 0 to k
+        maxk = max(topk)
+        batch_size = target.size(0)
+        #topk gives biggest maxk values on dimth dimension from output
+        #output was [batch_size, category_count], dim=1 so we will select biggest category scores for each batch
+        # input=maxk, so we will select maxk number of classes
+        #so result will be [batch_size,maxk]
+        #topk returns a tuple (values, indexes) of results
+        # we only need indexes(pred)
+        _, pred = output.topk(maxk, dim=1, largest=True, sorted=True)
+        # then we transpose pred to be in shape of [maxk, batch_size]
+        pred = pred.t()
+        #we flatten target and then expand target to be like pred
+        # target [batch_size] becomes [1,batch_size]
+        # target [1,batch_size] expands to be [maxk, batch_size] by repeating same correct class answer maxk times.
+        # when you compare pred (indexes) with expanded target, you get 'correct' matrix in the shape of  [maxk, batch_size] filled with 1 and 0 for correct and wrong class assignments
+        correct = pred.eq(target.view(1, -1).expand_as(pred))
+        """ correct=([[0, 0, 1,  ..., 0, 0, 0],
+        [1, 0, 0,  ..., 0, 0, 0],
+        [0, 0, 0,  ..., 1, 0, 0],
+        [0, 0, 0,  ..., 0, 0, 0],
+        [0, 1, 0,  ..., 0, 0, 0]], device='cuda:0', dtype=torch.uint8) """
+        res = []
+        # then we look for each k summing 1s in the correct matrix for first k element.
+        for k in topk:
+            correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
+            res.append(correct[:k].view(-1).float().sum(0, keepdim=True))
+        return res
+
 def evaluate_accuracy_models_generator(models, data, max_data=0, topk=(1,), target_one_hot=False):
     """Computes the accuracy (sobre 1) over the k top predictions for the specified values of k"""
     # Si paso un modelo y topk(1,5) -> acc1, acc5,
     # Si paso dos modelo y topk(1,5) -> m1_acc1, m1_acc5, m2_acc1, m2_acc5
     with torch.no_grad():
 
-        if type(topk)==int: 
+        if type(topk)==int:
             maxk = topk
             topk = (topk,)
         else: maxk = max(topk)
@@ -173,14 +210,7 @@ def evaluate_accuracy_models_generator(models, data, max_data=0, topk=(1,), targ
 
                 # Transformamos los logits a salida con el indice con el mayor valor
                 #  de las tuplas que continen los logits
-                _, pred = model_out.topk(maxk, 1, True, True)
-                pred = pred.t()
-                correct = pred.eq(target.cuda().view(1, -1).expand_as(pred.cuda()))
-
-                res_topk = []
-                for k in topk:
-                    res_topk.append(correct[:k].view(-1).float().sum(0, keepdim=True))
-                res_topk = np.array(res_topk)
+                res_topk = np.array(topk_accuracy(model_out, target.cuda(), topk=topk))
 
                 correct_models[model_indx] += res_topk
 
@@ -202,7 +232,7 @@ def evaluate_accuracy_models_data(models, X_data, y_data, batch_size=100, max_da
     # Si paso dos modelo y topk(1,5) -> m1_acc1, m1_acc5, m2_acc1, m2_acc5
     with torch.no_grad():
 
-        if type(topk)==int: 
+        if type(topk)==int:
             maxk = topk
             topk = (topk,)
         else: maxk = max(topk)
@@ -210,7 +240,7 @@ def evaluate_accuracy_models_data(models, X_data, y_data, batch_size=100, max_da
         correct_models, total_samples = [0]*len(models), 0
 
         total_samples = 0
-        while True: 
+        while True:
 
             # Debemos comprobar que no nos pasamos con el batch_size
             if total_samples + batch_size >= len(X_data): batch_size = (len(X_data)-1) - total_samples
@@ -235,17 +265,9 @@ def evaluate_accuracy_models_data(models, X_data, y_data, batch_size=100, max_da
 
                 # Transformamos los logits a salida con el indice con el mayor valor
                 #  de las tuplas que continen los logits
-                _, pred = model_out.topk(maxk, 1, True, True)
-                pred = pred.t()
-                correct = pred.eq(target.cuda().view(1, -1).expand_as(pred.cuda()))
-
-                res_topk = []
-                for k in topk:
-                    correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
-                    res_topk.append(correct_k.mul_(100.0))
-                res_topk = np.array(res_topk)
-
+                res_topk = np.array(topk_accuracy(model_out, target.cuda(), topk=topk))
                 correct_models[model_indx] += res_topk
+
 
             total_samples+=batch_size
             if max_data != 0 and total_samples >= max_data or total_samples+1 == len(X_data): break
