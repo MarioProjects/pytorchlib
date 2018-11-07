@@ -280,6 +280,45 @@ def evaluate_accuracy_models_data(models, X_data, y_data, batch_size=100, max_da
     if len(accuracies) == 1: return accuracies[0]
     return accuracies
 
+def predictions_models_data(models, X_data, batch_size=100):
+    """Computes the predictions for the specified data X_data"""
+    # Si paso un modelo y topk(1,5) -> acc1, acc5,
+    # Si paso dos modelo y topk(1,5) -> m1_acc1, m1_acc5, m2_acc1, m2_acc5
+    with torch.no_grad():
+
+        outs_models, total_samples = [torch.zeros(0,0).cuda()]*len(models), 0
+
+        total_samples = 0
+        while True:
+
+            # Debemos comprobar que no nos pasamos con el batch_size
+            if total_samples + batch_size >= len(X_data): batch_size = (len(X_data)-1) - total_samples
+
+            batch = X_data[total_samples:total_samples+batch_size]
+
+            # calculo predicciones para el error de test de todos los modelos
+            # Tengo que hacer el forward para cada modelo y ver que clases acierta
+            for model_indx, model in enumerate(models):
+                if model.net_type == "fully-connected":
+                    model_out = model.forward(Variable(batch.float().view(batch.shape[0], -1).cuda()))
+                elif model.net_type == "convolutional":
+                    model_out = model.forward(Variable(batch.float().cuda()))
+                else: assert False, "Please define your model type!"
+
+                # Algunos modelos devuelven varias salidas como pueden ser la capa
+                # reshape y los logits, etc... Por lo que se establece el standar
+                # de que la ultima salida sean los logits del modelo para hacer la clasificacion
+                if type(model_out) is list or type(model_out) is tuple:
+                    model_out = model_out[-1]
+
+                outs_models[0]=torch.cat((outs_models[0], model_out))
+
+            total_samples+=batch_size
+            if total_samples+1 == len(X_data): break
+
+    if len(outs_models) == 1: return outs_models[0]
+    return outs_models
+
 def train_discriminator(discriminator_net, discriminator_optimizer, real_data, fake_data, loss):
     num_samples = real_data.size(0) # Para conocer el numero de muestras
 
