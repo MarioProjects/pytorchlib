@@ -1,5 +1,6 @@
 ''' Deep Residual Networks (ResNet) in Pytorch. '''
 ''' Official paper at https://arxiv.org/pdf/1512.03385.pdf '''
+''' Original Implementation: https://github.com/kuangliu/pytorch-cifar/blob/master/models/resnet.py '''
 
 import torch
 import torch.nn as nn
@@ -108,7 +109,8 @@ class ResNet(nn.Module):
         out = self.forward_conv(out)
         out = F.avg_pool2d(out, self.last_avg_pool_size)
         out = out.view(out.size(0), -1)
-        out = self.linear(out)
+        try: out = self.linear(out)
+        except: assert False, "The Flat size after view is: " + str(out.shape[1])
         return out
 
 
@@ -119,8 +121,8 @@ def ResNetModel(configuration_blocks, configuration_maps, block_type, gray, flat
     if configuration_maps in cfg_maps:
         configuration_maps = cfg_maps[configuration_maps]
 
-    if "basic" in block_type: block_type = BasicBlock
-    elif "bottle" in block_type: block_type = Bottleneck
+    if "BasicBlock" in block_type: block_type = BasicBlock
+    elif "Bottleneck" in block_type: block_type = Bottleneck
     else: assert False, "Not block type allowed!"
 
     my_model = ResNet(block_type, configuration_blocks, configuration_maps, gray, flat_size, num_classes)

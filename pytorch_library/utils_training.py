@@ -5,6 +5,7 @@ from torch import nn, optim
 import torch.nn.functional as F
 from torch.autograd.variable import Variable
 
+CROSS_ENTROPY_ONE_HOT_WARNING = False
 
 def to_categorical(y, num_classes=None, dtype='float32'):
     """Converts a class vector (integers) to binary class matrix.
@@ -130,7 +131,12 @@ def train_simple_model(model, data, target, loss, optimizer, out_pos=-1, target_
     # Calculo el error obtenido
     # Cuidado con la codificacion one hot! https://discuss.pytorch.org/t/runtimeerror-multi-target-not-supported-newbie/10216/8
     try: cost = loss(model_out, target)
-    except: cost = loss(model_out, target[:,0])
+    except:
+        global CROSS_ENTROPY_ONE_HOT_WARNING
+        if not CROSS_ENTROPY_ONE_HOT_WARNING:
+            print("\nWARNING-INFO: Crossentropy not works with one hot target encoding!\n")
+            CROSS_ENTROPY_ONE_HOT_WARNING = True
+        cost = loss(model_out, target[:,0])
     cost.backward()
 
     # Actualizamos pesos y gradientes

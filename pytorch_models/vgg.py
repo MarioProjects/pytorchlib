@@ -1,5 +1,7 @@
 ''' VGGs in Pytorch. '''
 ''' Official paper at https://arxiv.org/pdf/1409.1556.pdf '''
+''' Original Implementation: https://github.com/kuangliu/pytorch-cifar/blob/master/models/vgg.py '''
+
 import math
 import torch
 import torch.nn as nn
@@ -8,7 +10,7 @@ from pytorchlib.pytorch_library import utils_nets
 
 cfg = {
     'MNISTSmallVGG': [16, 'M', 16, 'M', 16, 'M', 32, 'M'], # Usado en MNIST (28,28) -> FlatSize 32*1*1
-    
+
     'ExtraSmallMiniVGGv0': [16, 'M', 16, 'M', 16, 'M', 32, 'M', 32, 'M'],
     'ExtraSmallMiniVGGv1': [16, 16, 'M', 16, 16, 'M', 16,16, 'M', 32,32, 'M', 32,32, 'M'],
     'SmallVGGv0': [32, 'M', 64, 'M', 128, 'M', 256, 'M', 512, 'M'],
@@ -71,7 +73,9 @@ class VGG(nn.Module):
     def forward(self, x):
         x = self.forward_conv(x)
         x = x.view(x.size(0), -1)
-        x = self.forward_linear(x)
+        try: x = self.forward_linear(x)
+        except: assert False, "The Flat size after view is: " + str(x.shape[1])
+
         return x
 
 

@@ -87,7 +87,8 @@ class DenseNet(nn.Module):
         out = self.dense4(out)
         out = F.avg_pool2d(F.relu(self.bn(out)), 4)
         out = out.view(out.size(0), -1)
-        out = self.linear(out)
+        try: out = self.linear(out)
+        except: assert False, "The Flat size after view is: " + str(out.shape[1])
         return out
 
 def DenseNetModel(res_name, growth_rate, gray):

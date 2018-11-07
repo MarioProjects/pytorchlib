@@ -8,6 +8,7 @@ from pytorchlib.pytorch_models.resnet import ResNetModel
 from pytorchlib.pytorch_models.mobilenetv2 import MobileNetv2Model
 from pytorchlib.pytorch_models.densenet import DenseNetModel
 from pytorchlib.pytorch_models.basic_nets import BasicModel
+from pytorchlib.pytorch_models.senet import SENetModel
 
 def select_model(model_name, model_config=[], flat_size=0, in_features=0, out_features=0, dropout=0.0, ruido=0.0, gray=0, growth_rate=0, out_type='', batchnorm=True, default_act="relu", data_parallel=False, pretrained=True, block_type=None):
     """ Model instantiator
@@ -39,6 +40,9 @@ def select_model(model_name, model_config=[], flat_size=0, in_features=0, out_fe
 
     elif 'MobileNet' in model_name:
         my_model = MobileNetv2Model(model_config, gray, num_classes).cuda()
+    
+    elif 'SENet' in model_name:
+        my_model = SENetModel(model_config[0], model_config[1], block_type, gray, flat_size=flat_size, num_classes=out_features).cuda()
 
     elif 'Simple_MLP' in model_name:
         my_model = BasicModel(model_config, "MLP", in_features, out_type, gray=gray, dropout=dropout, std=ruido, batchnorm=batchnorm, default_act=default_act).cuda()

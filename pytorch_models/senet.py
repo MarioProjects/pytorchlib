@@ -1,13 +1,27 @@
 '''SENet in PyTorch.
 SENet is the winner of ImageNet-2017. The paper is not released yet.
+Original Implementation: https://github.com/kuangliu/pytorch-cifar/blob/master/models/senet.py
 '''
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from collections import OrderedDict
+from pytorchlib.pytorch_library import utils_nets
+
+cfg_blocks = {
+    '18': [2,2,2,2]
+}
+
+cfg_maps = {
+    'ExtraSmall': [16, 16, 32, 64, 128],
+    'Small': [32, 32, 64, 128, 256],
+    'Standard': [64, 64, 128, 256, 512]
+}
+
 
 class BasicBlock(nn.Module):
-    def __init__(self, in_planes, planes, stride=1):
+    def __init__(self, in_planes, planes, stride=1, dropout=0.0, std=0.0, append2name=""):
         super(BasicBlock, self).__init__()
         self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(planes)
@@ -22,8 +36,13 @@ class BasicBlock(nn.Module):
             )
 
         # SE layers
-        self.fc1 = nn.Conv2d(planes, planes//16, kernel_size=1)  # Use nn.Conv2d instead of nn.Linear
-        self.fc2 = nn.Conv2d(planes//16, planes, kernel_size=1)
+        se_layers = []
+        se_layers.append(utils_nets.apply_conv(planes, planes//16, activation="relu", std=std, kernel=1,
+                                                dropout=dropout, batchnorm=False, name_append=append2name))
+        se_layers.append(utils_nets.apply_conv(planes//16, planes, activation="sigmoid", std=std, kernel=1,
+                                                dropout=dropout, batchnorm=False, name_append=append2name))
+        self.se_operation = nn.Sequential(*se_layers)
+
 
     def forward(self, x):
         out = F.relu(self.bn1(self.conv1(x)))
@@ -31,8 +50,8 @@ class BasicBlock(nn.Module):
 
         # Squeeze
         w = F.avg_pool2d(out, out.size(2))
-        w = F.relu(self.fc1(w))
-        w = F.sigmoid(self.fc2(w))
+        w = self.se_operation(w)
+
         # Excitation
         out = out * w  # New broadcasting feature from v0.2!
 
@@ -42,7 +61,7 @@ class BasicBlock(nn.Module):
 
 
 class PreActBlock(nn.Module):
-    def __init__(self, in_planes, planes, stride=1):
+    def __init__(self, in_planes, planes, stride=1, dropout=0.0, std=0.0, append2name=""):
         super(PreActBlock, self).__init__()
         self.bn1 = nn.BatchNorm2d(in_planes)
         self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
@@ -55,8 +74,13 @@ class PreActBlock(nn.Module):
             )
 
         # SE layers
-        self.fc1 = nn.Conv2d(planes, planes//16, kernel_size=1)
-        self.fc2 = nn.Conv2d(planes//16, planes, kernel_size=1)
+        se_layers = []
+        se_layers.append(utils_nets.apply_conv(planes, planes//16, activation="relu", std=std, kernel=1,
+                                                dropout=dropout, batchnorm=False, name_append=append2name))
+        se_layers.append(utils_nets.apply_conv(planes//16, planes, activation="sigmoid", std=std, kernel=1,
+                                                dropout=dropout, batchnorm=False, name_append=append2name))
+        self.se_operation = nn.Sequential(*se_layers)
+
 
     def forward(self, x):
         out = F.relu(self.bn1(x))
@@ -66,8 +90,8 @@ class PreActBlock(nn.Module):
 
         # Squeeze
         w = F.avg_pool2d(out, out.size(2))
-        w = F.relu(self.fc1(w))
-        w = F.sigmoid(self.fc2(w))
+        w = self.se_operation(w)
+
         # Excitation
         out = out * w
 
@@ -76,43 +100,58 @@ class PreActBlock(nn.Module):
 
 
 class SENet(nn.Module):
-    def __init__(self, block, num_blocks, num_classes=10):
+
+    def __init__(self, block, configuration_blocks, configuration_maps, gray, flat_size, num_classes, last_avg_pool_size=4):
         super(SENet, self).__init__()
-        self.in_planes = 64
+        self.in_planes = configuration_maps[0]
+        self.last_avg_pool_size = last_avg_pool_size
 
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(64)
-        self.layer1 = self._make_layer(block,  64, num_blocks[0], stride=1)
-        self.layer2 = self._make_layer(block, 128, num_blocks[1], stride=2)
-        self.layer3 = self._make_layer(block, 256, num_blocks[2], stride=2)
-        self.layer4 = self._make_layer(block, 512, num_blocks[3], stride=2)
-        self.linear = nn.Linear(512, num_classes)
+        if gray: initial_channels = 1
+        else: initial_channels = 3
 
-    def _make_layer(self, block, planes, num_blocks, stride):
+
+        self.conv1 = nn.Conv2d(initial_channels, configuration_maps[0], kernel_size=3, stride=1, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(configuration_maps[0])
+
+        senet_layers = []
+        # La primera configuration_maps no la queremos ya que ya la hemos usado en conv1
+        for indx, (channels, num_blocks) in enumerate(zip(configuration_maps[1:], configuration_blocks)):
+            stride = 1 if indx == 0 else 2
+            senet_layers.append(self._make_layer(block, channels, num_blocks, stride, append2name="_Block"+str(indx)))
+
+        self.forward_conv = nn.Sequential(*senet_layers)
+        self.linear = nn.Sequential(OrderedDict([("FC_OUT", nn.Linear(flat_size, num_classes))]))
+
+
+    def _make_layer(self, block, planes, num_blocks, stride, append2name=""):
         strides = [stride] + [1]*(num_blocks-1)
         layers = []
         for stride in strides:
-            layers.append(block(self.in_planes, planes, stride))
+            layers.append(block(self.in_planes, planes, stride=stride, append2name=append2name))
             self.in_planes = planes
         return nn.Sequential(*layers)
 
     def forward(self, x):
         out = F.relu(self.bn1(self.conv1(x)))
-        out = self.layer1(out)
-        out = self.layer2(out)
-        out = self.layer3(out)
-        out = self.layer4(out)
-        out = F.avg_pool2d(out, 4)
+        out = self.forward_conv(out)
+        out = F.avg_pool2d(out, self.last_avg_pool_size)
         out = out.view(out.size(0), -1)
-        out = self.linear(out)
+        try: out = self.linear(out)
+        except: assert False, "The Flat size after view is: " + str(out.shape[1])
         return out
 
 
-def SENet18():
-    return SENet(PreActBlock, [2,2,2,2])
+def SENetModel(configuration_blocks, configuration_maps, block_type, gray, flat_size=0, num_classes=2):
+    my_model = False
+    if configuration_blocks in cfg_blocks:
+        configuration_blocks = cfg_blocks[configuration_blocks]
+    if configuration_maps in cfg_maps:
+        configuration_maps = cfg_maps[configuration_maps]
 
+    if "BasicBlock" in block_type: block_type = BasicBlock
+    elif "PreActBlock" in block_type: block_type = PreActBlock
+    else: assert False, "Not block type allowed!"
 
-def test():
-    net = SENet18()
-    y = net(torch.randn(1,3,32,32))
-    print(y.size())
+    my_model = SENet(block_type, configuration_blocks, configuration_maps, gray, flat_size, num_classes)
+    my_model.net_type = "convolutional"
+    return my_model

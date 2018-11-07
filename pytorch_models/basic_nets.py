@@ -135,6 +135,10 @@ class ConvNet(nn.Module):
         # flatten the output for each image
         reshape = x.view(-1, 4*4*self.num_channels*4)             # batch_size x 4*4*num_channels*4
         logits = self.fc1(reshape)
+        
+        #try: out = self.linear(out)
+        #except: assert False, "The Flat size after view is: " + str(out.shape[1])
+        
         return reshape, logits
 
 

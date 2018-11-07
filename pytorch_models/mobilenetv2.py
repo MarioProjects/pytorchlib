@@ -118,7 +118,8 @@ class MobileNetV2(nn.Module):
         # NOTE: change pooling kernel_size 7 -> 4 for CIFAR10
         out = F.avg_pool2d(out, last_pool_size[self.name]) # Original 7x7 -> Tamaño salida
         out = out.view(out.size(0), -1)
-        out = self.linear(out)
+        try: out = self.linear(out)
+        except: assert False, "The Flat size after view is: " + str(out.shape[1])
         return out
 
 def MobileNetv2Model(mobilenet_name, gray, num_classes):
