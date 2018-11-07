@@ -154,7 +154,7 @@ def SENetModel(configuration_blocks, configuration_maps, block_type, gray, flat_
 
     if "BasicBlock" in block_type: block_type = BasicBlock
     elif "PreActBlock" in block_type: block_type = PreActBlock
-    else: assert False, "Not block type allowed!"
+    else: assert False, "No block type '"+str(block_type)+"' allowed!"
 
     my_model = SENet(block_type, configuration_blocks, configuration_maps, gray, flat_size, num_classes)
     my_model.net_type = "convolutional"

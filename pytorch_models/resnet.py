@@ -123,7 +123,7 @@ def ResNetModel(configuration_blocks, configuration_maps, block_type, gray, flat
 
     if "BasicBlock" in block_type: block_type = BasicBlock
     elif "Bottleneck" in block_type: block_type = Bottleneck
-    else: assert False, "Not block type allowed!"
+    else: assert False, "No block type '"+str(block_type)+"' allowed!"
 
     my_model = ResNet(block_type, configuration_blocks, configuration_maps, gray, flat_size, num_classes)
     my_model.net_type = "convolutional"
