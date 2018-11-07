@@ -13,11 +13,11 @@ SHORTCUT_ADD_NAME = "ShortcutAdd"
 SHORTCUT_JUMP_NAME = "ShortcutJump"
 
 cfg_blocks = {
-    'Basic18': [2,2,2,2],
-    'Basic34': [3,4,6,3],
-    'Bottle50': [3,4,6,3],
-    'Bottle101': [3,4,23,3],
-    'Bottle152': [3,8,36,3],
+    '18': [2,2,2,2],
+    '34': [3,4,6,3],
+    '50': [3,4,6,3],
+    '101': [3,4,23,3],
+    '152': [3,8,36,3],
 }
 
 cfg_maps = {

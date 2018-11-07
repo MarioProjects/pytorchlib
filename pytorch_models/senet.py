@@ -10,7 +10,11 @@ from collections import OrderedDict
 from pytorchlib.pytorch_library import utils_nets
 
 cfg_blocks = {
-    '18': [2,2,2,2]
+    '18': [2,2,2,2],
+    '34': [3,4,6,3],
+    '50': [3,4,6,3],
+    '101': [3,4,23,3],
+    '152': [3,8,36,3],
 }
 
 cfg_maps = {
