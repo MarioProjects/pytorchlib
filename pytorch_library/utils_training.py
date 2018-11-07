@@ -242,7 +242,7 @@ def evaluate_accuracy_models_data(models, X_data, y_data, batch_size=100, max_da
         while True:
 
             # Debemos comprobar que no nos pasamos con el batch_size
-            if total_samples + batch_size >= len(X_data): batch_size = (len(X_data)-1) - total_samples
+            if total_samples + batch_size >= len(X_data): batch_size = (len(X_data)) - total_samples
 
             batch = X_data[total_samples:total_samples+batch_size]
             target = y_data[total_samples:total_samples+batch_size]
@@ -269,7 +269,7 @@ def evaluate_accuracy_models_data(models, X_data, y_data, batch_size=100, max_da
 
 
             total_samples+=batch_size
-            if max_data != 0 and total_samples >= max_data or total_samples+1 == len(X_data): break
+            if max_data != 0 and total_samples >= max_data or total_samples == len(X_data): break
 
     accuracies = []
     for result_model in correct_models:
@@ -292,7 +292,7 @@ def predictions_models_data(models, X_data, batch_size=100):
         while True:
 
             # Debemos comprobar que no nos pasamos con el batch_size
-            if total_samples + batch_size >= len(X_data): batch_size = (len(X_data)-1) - total_samples
+            if total_samples + batch_size >= len(X_data): batch_size = (len(X_data)) - total_samples
 
             batch = X_data[total_samples:total_samples+batch_size]
 
@@ -314,7 +314,7 @@ def predictions_models_data(models, X_data, batch_size=100):
                 outs_models[0]=torch.cat((outs_models[0], model_out))
 
             total_samples+=batch_size
-            if total_samples+1 == len(X_data): break
+            if total_samples == len(X_data): break
 
     if len(outs_models) == 1: return outs_models[0]
     return outs_models

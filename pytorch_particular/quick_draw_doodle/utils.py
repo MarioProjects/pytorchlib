@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import numpy as np
+import torch
 
 #### Flujo normal para generar el submission
 """
@@ -36,3 +37,18 @@ def preds2catids(predictions):
 def catids2names(top3):
     # Toma las predicciones y las transforma a nombres
     return top3.replace(ID2CATEGORY)
+
+def preds2submission(predictions, test_df):
+    if type(predictions) == torch.Tensor:
+        predictions = predictions.data.cpu().numpy()
+    elif type(predictions) != np.ndarray: assert False, "Predictions types: torch.Tensor or numpy!"
+
+    top3 = preds2catids(predictions)
+
+    top3cats = catids2names(top3)
+
+    copy_test_df = test_df.copy(deep=True)
+    copy_test_df['word'] = top3cats['a'] + ' ' + top3cats['b'] + ' ' + top3cats['c']
+    submission = copy_test_df[['key_id', 'word']]
+
+    return submission
