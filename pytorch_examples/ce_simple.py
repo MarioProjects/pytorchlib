@@ -8,6 +8,7 @@
 import numpy as np
 import pickle
 import pathlib
+import time
 
 import torch
 from torch import nn, optim
@@ -85,6 +86,7 @@ data_eval_per_epoch = val_samples
 
 """ ---- ENTRENAMIENTO DEL MODELO ---- """
 
+start_time = time.time()
 for indx,(epochs_now, lr_now) in enumerate(zip(epochs_steps, lr_steps)):
 
     model_optimizer = utils_training.get_optimizer(optimizador, model.parameters(), lr=lr_now)
@@ -103,7 +105,8 @@ for indx,(epochs_now, lr_now) in enumerate(zip(epochs_steps, lr_steps)):
 
         curr_accuracy = utils_training.evaluate_accuracy_models_generator([model], val_loader, max_data=data_eval_per_epoch)
         curr_loss = total_loss / total_data_train
-        print("Epoch {}: Learning Rate: {:.6f}, Loss: {:.6f}, Accuracy: {:.2f}".format(total_epochs, lr_new, curr_loss, curr_accuracy))
+        tick_time = time.time()
+        print("Epoch {}: Learning Rate: {:.6f}, Loss: {:.6f}, Accuracy: {:.2f} --- ".format(total_epochs, lr_new, curr_loss, curr_accuracy) + utils_general.time2human(start_time, tick_time))
 
         results["log-loss"].append(curr_loss)
         results["log-acc"].append(curr_accuracy)

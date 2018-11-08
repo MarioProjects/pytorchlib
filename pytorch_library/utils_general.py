@@ -35,3 +35,11 @@ def noise(samples, out_features):
     return Variable(torch.randn(samples, out_features)).type(torch.cuda.FloatTensor)
 
 
+def time2human(start,end):
+    #### start and end --> time.time()
+    #### returns string
+    hours, rem = divmod(end-start, 3600)
+    minutes, seconds = divmod(rem, 60)
+    #print("{:0>2}:{:0>2}:{:05.2f}".format(int(hours),int(minutes),seconds))
+    #print("{:0>1} hr {:0>2} min".format(int(hours),int(minutes)))
+    return "{:0>1} hr {:0>2} min".format(int(hours),int(minutes))

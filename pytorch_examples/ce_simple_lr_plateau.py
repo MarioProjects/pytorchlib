@@ -8,6 +8,7 @@
 import numpy as np
 import pickle
 import pathlib
+import time
 
 import torch
 from torch import nn, optim
@@ -86,6 +87,9 @@ model_optimizer = utils_training.get_optimizer(optimizador, model.parameters(), 
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(model_optimizer, 'max', factor=0.5,
             patience=7, cooldown=3, threshold=0.005, min_lr=0, verbose=True) # Queremos maximizar el accuracy
 
+
+start_time = time.time()
+
 for epoch in range(1, total_epochs+1):
 
     total_loss, total_data_train = 0, 0
@@ -99,7 +103,8 @@ for epoch in range(1, total_epochs+1):
 
     curr_accuracy = utils_training.evaluate_accuracy_models_generator([model], val_loader, max_data=data_eval_per_epoch)
     curr_loss = total_loss / total_data_train
-    print("Epoch {}: Learning Rate: {:.6f}, Loss: {:.6f}, Accuracy: {:.2f}".format(epoch, utils_training.get_current_lr(model_optimizer), curr_loss, curr_accuracy))
+    tick_time = time.time()
+    print("Epoch {}: Learning Rate: {:.6f}, Loss: {:.6f}, Accuracy: {:.2f} --- ".format(epoch, utils_training.get_current_lr(model_optimizer), curr_loss, curr_accuracy) + utils_general.time2human(start_time, tick_time))
 
     results["log-loss"].append(curr_loss)
     results["log-acc"].append(curr_accuracy)
