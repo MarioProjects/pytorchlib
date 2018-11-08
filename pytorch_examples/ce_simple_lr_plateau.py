@@ -68,6 +68,7 @@ model = models_interface.select_model(model_type, model_config=model_cfg, pretra
 # Vamos a utilizar la metrica del error cuadratico medio
 loss_ce = nn.CrossEntropyLoss()
 total_epochs = 100
+lr_start = 0.1
 best_acc = 0.0
 
 model_name_path = "results/CE_Simple/"+optimizador+"/"+model_type+"/"+str(model_cfg_txt)+"/"
@@ -82,7 +83,7 @@ data_eval_per_epoch = val_samples
 
 """ ---- ENTRENAMIENTO DEL MODELO ---- """
 
-model_optimizer = utils_training.get_optimizer(optimizador, model.parameters(), lr=lr_now)
+model_optimizer = utils_training.get_optimizer(optimizador, model.parameters(), lr=lr_start)
 # https://pytorch.org/docs/stable/optim.html#torch.optim.lr_scheduler.ReduceLROnPlateau
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(model_optimizer, 'max', factor=0.5,
             patience=7, cooldown=3, threshold=0.005, min_lr=0, verbose=True) # Queremos maximizar el accuracy
