@@ -46,16 +46,14 @@ else: model_cfg_txt = model_cfg
 
 print("\nEntrenando CE Simple con {} - {} utilizando {} - Quick Draw Doodle!)".format(model_type, str(model_cfg_txt), optimizador))
 
-""" --- CARGA DE DATOS --- """
-# Establecemos una semilla para la replicacion de los experimentos correctamente
-seed = 0
-torch.manual_seed(seed=seed)
-torch.cuda.manual_seed(seed=seed)
-
-batch_size = 64
-
 """
     -> LOAD YOUR DATA HERE!!!!!
+    # Establecemos una semilla para la replicacion de los experimentos correctamente
+    seed = 0
+    torch.manual_seed(seed=seed)
+    torch.cuda.manual_seed(seed=seed)
+
+    batch_size = 64
     data_interface.database_selector()
 """
 
