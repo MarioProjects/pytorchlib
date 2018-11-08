@@ -10,7 +10,11 @@ from collections import OrderedDict
 from pytorchlib.pytorch_library import utils_nets
 
 cfg_blocks = {
-    '18': [2,2,2,2]
+    '18': [2,2,2,2],
+    '34': [3,4,6,3],
+    '50': [3,4,6,3],
+    '101': [3,4,23,3],
+    '152': [3,8,36,3],
 }
 
 cfg_maps = {
@@ -150,7 +154,7 @@ def SENetModel(configuration_blocks, configuration_maps, block_type, gray, flat_
 
     if "BasicBlock" in block_type: block_type = BasicBlock
     elif "PreActBlock" in block_type: block_type = PreActBlock
-    else: assert False, "Not block type allowed!"
+    else: assert False, "No block type '"+str(block_type)+"' allowed!"
 
     my_model = SENet(block_type, configuration_blocks, configuration_maps, gray, flat_size, num_classes)
     my_model.net_type = "convolutional"

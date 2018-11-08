@@ -13,11 +13,11 @@ SHORTCUT_ADD_NAME = "ShortcutAdd"
 SHORTCUT_JUMP_NAME = "ShortcutJump"
 
 cfg_blocks = {
-    'Basic18': [2,2,2,2],
-    'Basic34': [3,4,6,3],
-    'Bottle50': [3,4,6,3],
-    'Bottle101': [3,4,23,3],
-    'Bottle152': [3,8,36,3],
+    '18': [2,2,2,2],
+    '34': [3,4,6,3],
+    '50': [3,4,6,3],
+    '101': [3,4,23,3],
+    '152': [3,8,36,3],
 }
 
 cfg_maps = {
@@ -123,7 +123,7 @@ def ResNetModel(configuration_blocks, configuration_maps, block_type, gray, flat
 
     if "BasicBlock" in block_type: block_type = BasicBlock
     elif "Bottleneck" in block_type: block_type = Bottleneck
-    else: assert False, "Not block type allowed!"
+    else: assert False, "No block type '"+str(block_type)+"' allowed!"
 
     my_model = ResNet(block_type, configuration_blocks, configuration_maps, gray, flat_size, num_classes)
     my_model.net_type = "convolutional"
