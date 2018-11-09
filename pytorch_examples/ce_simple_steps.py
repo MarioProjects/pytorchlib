@@ -80,6 +80,7 @@ results = {}
 results["name"] = model_name_path
 results["log-loss"] = []
 results["log-acc"] = []
+results["time"] = ""
 
 data_train_per_epoch = train_samples
 data_eval_per_epoch = val_samples
@@ -105,8 +106,7 @@ for indx,(epochs_now, lr_now) in enumerate(zip(epochs_steps, lr_steps)):
 
         curr_accuracy = utils_training.evaluate_accuracy_models_generator([model], val_loader, max_data=data_eval_per_epoch)
         curr_loss = total_loss / total_data_train
-        tick_time = time.time()
-        print("Epoch {}: Learning Rate: {:.6f}, Loss: {:.6f}, Accuracy: {:.2f} --- ".format(total_epochs, lr_new, curr_loss, curr_accuracy) + utils_general.time2human(start_time, tick_time))
+        print("Epoch {}: Learning Rate: {:.6f}, Loss: {:.6f}, Accuracy: {:.2f} --- ".format(total_epochs, lr_new, curr_loss, curr_accuracy) + utils_general.time2human(start_time, time.time()))
 
         results["log-loss"].append(curr_loss)
         results["log-acc"].append(curr_accuracy)
@@ -121,6 +121,7 @@ for indx,(epochs_now, lr_now) in enumerate(zip(epochs_steps, lr_steps)):
 
 
 """ ---- GUARDADO DE RESULTADOS Y LOGGING ---- """
+results["time"] = utils_general.time2human(start_time, time.time())
 
 pathlib.Path(model_name_path).mkdir(parents=True, exist_ok=True)
 torch.save(best_model_state_dict, model_name_path+"CE_Simple_checkpoint_state.pt")
@@ -128,4 +129,5 @@ with open(model_name_path+"CE_Simple_LOG.pkl", 'wb') as f:
     pickle.dump(results, f, pickle.HIGHEST_PROTOCOL)
 
 utils_general.slack_message("(CE Simple - Quick Draw Doodle) Accuracy modelo " + model_type + " - " + str(model_cfg_txt) +
-                            " utilizando " + optimizador +": " + str(np.max(np.array(results["log-acc"])))[0:5] + "%", slack_channel)
+                            " utilizando " + optimizador +": " + str(np.max(np.array(results["log-acc"])))[0:5] + "% --- " +
+                            utils_general.time2human(start_time, time.time()), slack_channel)
