@@ -42,21 +42,6 @@ maps_last_conv = {
     "MobileNetMediumv0": 1024
 }
 
-last_pool_size = { 
-    # Recordar que se suele hacer el tamaño que llega, si llegan 10x10 -> 10
-    "MobileNetStandard": 10,
-    "MobileNetSmallv0": 5,
-    "MobileNetSmallv1": 5, # Lo quiero dejar en 10 y hacer 2x2
-    "MobileNetMediumv0": 5
-}
-
-flat_size = {
-    "MobileNetStandard": 1280,
-    "MobileNetSmallv0": 512,
-    "MobileNetSmallv1": 512*2*2,
-    "MobileNetMediumv0": 1024
-}
-
 class Block(nn.Module):
     '''expand + depthwise + pointwise'''
     def __init__(self, in_planes, out_planes, expansion, stride):
@@ -88,9 +73,10 @@ class Block(nn.Module):
 
 class MobileNetV2(nn.Module):
 
-    def __init__(self, mobilenet_name, gray, num_classes=2):
+    def __init__(self, mobilenet_name, gray, flat_size, last_pool_size, num_classes=2):
         super(MobileNetV2, self).__init__()
         self.name = mobilenet_name
+        self.last_pool_size = last_pool_size
         if gray: initial_channels = 1
         else: initial_channels = 3
         # NOTE: change conv1 stride 2 -> 1 for CIFAR10
@@ -100,7 +86,7 @@ class MobileNetV2(nn.Module):
         # cfg[mobilenet_name][-1][1] -> Los mapas de salida de make layers
         self.conv2 = nn.Conv2d(cfg[mobilenet_name][-1][1], maps_last_conv[mobilenet_name], kernel_size=1, stride=1, padding=0, bias=False)
         self.bn2 = nn.BatchNorm2d(maps_last_conv[mobilenet_name])
-        self.linear = nn.Linear(flat_size[mobilenet_name], num_classes)
+        self.linear = nn.Linear(flat_size, num_classes)
 
     def _make_layers(self, mobilenet_name, in_planes):
         layers = []
@@ -116,16 +102,16 @@ class MobileNetV2(nn.Module):
         out = self.layers(out)
         out = F.relu(self.bn2(self.conv2(out)))
         # NOTE: change pooling kernel_size 7 -> 4 for CIFAR10
-        out = F.avg_pool2d(out, last_pool_size[self.name]) # Original 7x7 -> Tamaño salida
+        out = F.avg_pool2d(out, self.last_pool_size) # Original 7x7 -> Tamaño salida
         out = out.view(out.size(0), -1)
         try: out = self.linear(out)
         except: assert False, "The Flat size after view is: " + str(out.shape[1])
         return out
 
-def MobileNetv2Model(mobilenet_name, gray, num_classes):
+def MobileNetv2Model(mobilenet_name, gray, num_classes, flat_size, last_pool_size):
     if mobilenet_name not in cfg:
         assert False, 'No MobileNetv2 Model with that name!'
     else:
-        my_model = MobileNetV2(mobilenet_name, gray, num_classes)
+        my_model = MobileNetV2(mobilenet_name, gray, flat_size, last_pool_size, num_classes)
         my_model.net_type = "convolutional"
         return my_model

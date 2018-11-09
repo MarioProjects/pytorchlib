@@ -60,7 +60,7 @@ print("\nEntrenando CE Simple con {} - {} utilizando {} - Quick Draw Doodle!)".f
 
 """ ---- MODELOS ---- """
 
-model = models_interface.select_model(model_type, model_config=model_cfg, pretrained=True, out_features=num_classes).cuda()
+my_model = models_interface.select_model(model_name, model_config=model_config, dropout=dropout, ruido=ruido, gray=gray, growth_rate=growth_rate, flat_size=flat_size, in_features=in_features, out_type=out_type, block_type=block_type, out_features=out_features, last_pool_size=last_pool_size)
 
 """ ---- CONSTANTES DE NUESTRO PROGRAMA ---- """
 

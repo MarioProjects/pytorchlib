@@ -1,0 +1,2 @@
+  -> Carvana Image Masking Challenge (customized uNet): https://www.kaggle.com/c/carvana-image-masking-challenge/discussion/37208
+    (Tips: https://www.kaggle.com/c/carvana-image-masking-challenge/discussion/38125)

@@ -11,6 +11,11 @@ from pytorchlib.pytorch_library import utils_nets
 cfg = {
     'MNISTSmallVGG': [16, 'M', 16, 'M', 16, 'M', 32, 'M'], # Usado en MNIST (28,28) -> FlatSize 32*1*1
 
+    # QUICK DRAW DOODLE::: Img Sizes: --> 32=FinalMaps*2*2, --> 64=FinalMaps*4*4...
+    'QDrawSmallVGG': [32, 'M', 32, 'M', 64, 'M', 128, 'M'],
+    'QDrawMediumVGG': [32, 'M', 64, 'M', 128, 'M', 256, 'M'],
+    'QDrawLargeVGG': [32, 'M', 32, 'M', 64, 'M', 128, 'M', 256, 'M'],
+
     'ExtraSmallMiniVGGv0': [16, 'M', 16, 'M', 16, 'M', 32, 'M', 32, 'M'],
     'ExtraSmallMiniVGGv1': [16, 16, 'M', 16, 16, 'M', 16,16, 'M', 32,32, 'M', 32,32, 'M'],
     'SmallVGGv0': [32, 'M', 64, 'M', 128, 'M', 256, 'M', 512, 'M'],
