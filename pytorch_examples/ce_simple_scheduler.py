@@ -102,18 +102,18 @@ for epoch in range(1, total_epochs+1):
         if total_data_train >= data_train_per_epoch: break
         else: total_data_train += len(batch_data)
 
-    curr_accuracy = utils_training.evaluate_accuracy_models_generator([model], val_loader, max_data=data_eval_per_epoch)
+    acc1 = utils_training.evaluate_accuracy_models_generator([model], val_loader, max_data=data_eval_per_epoch, topk=(1,))
     curr_loss = total_loss / total_data_train
-    print("Epoch {}: Learning Rate: {:.6f}, Loss: {:.6f}, Accuracy: {:.2f} --- ".format(epoch, utils_training.get_current_lr(model_optimizer), curr_loss, curr_accuracy) + utils_general.time2human(start_time, time.time()))
+    print("Epoch {}: Learning Rate: {:.6f}, Loss: {:.6f}, Accuracy: {:.2f} --- ".format(epoch, utils_training.get_current_lr(model_optimizer), curr_loss, acc1*100) + utils_general.time2human(start_time, time.time()))
 
     results["log-loss"].append(curr_loss)
-    results["log-acc"].append(curr_accuracy)
+    results["log-acc"].append(acc1)
 
-    if curr_accuracy > best_acc:
-        best_acc = curr_accuracy
+    if acc1 > best_acc:
+        best_acc = acc1
         best_model_state_dict = model.state_dict()
 
-    scheduler.step(curr_accuracy)
+    scheduler.step(acc1)
 
 
 """ ---- GUARDADO DE RESULTADOS Y LOGGING ---- """

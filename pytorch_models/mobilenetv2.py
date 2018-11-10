@@ -1,6 +1,8 @@
 ''' MobileNetV2 in PyTorch. '''
 ''' Oficial paper at https://arxiv.org/abs/1801.04381 '''
 
+## Explanation: https://towardsdatascience.com/mobilenetv2-inverted-residuals-and-linear-bottlenecks-8a4362f4ffd5
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
