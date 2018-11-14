@@ -3,17 +3,24 @@
 
 |  Model Type |     Configuration    | Images Type |     Data Augmentation    |     Data Usage     | Accuracy@1 | Accuracy@3 | Leaderboard |
 |:-----------:|:--------------------:|:-----------:|:------------------------:|:------------------:|:----------:|:----------:|:-----------:|
+
 |   ResNet    | Bottle101_ExtraSmall |    64x64    | HFlip & ShiftScaleRotate | 50k - 145000 epoch |    76.30   |    90.39   |    -----    |
+
 |   ResNet    |     Basic34_Small    |    64x64    | HFlip & ShiftScaleRotate | 50k - 145000 epoch |    77.22   |    91.34   |    0.887    | >>> steps with DA
 |   ResNet    |     Basic34_Small    |    64x64    |            No            | 50k - 145000 epoch |    78.99   |    91.68   |    0.892    | >>> steps lr 0.35
 |   ResNet    |     Basic34_Small    |    64x64    |            No            |  1k -> 10k -> 50k  |    74.80   |    89.80   |    -----    | >>> data amounts
 |   ResNet    |     Basic34_Small    |    64x64    |           HFlip          | 50k - 145000 epoch |    77.60   |    90.65   |    -----    | >>> scheduler
 |   ResNet    |     Basic34_Small    |    64x64    |           HFlip          | 50k - 145000 epoch |    76.68   |    90.85   |    -----    | >>> steps lr 0.1
 |   ResNet    |     Basic34_Small    |    64x64    |            No            | 50k - 200000 epoch |    79.37   |    92.00   |    0.894    | >>> RETRAIN steps lr 0.15...
+---------------------------------------------------> Al aplicar Test Time Augmentations (4 variantes + Original) paso de 0.894 a  0.888    | >>> TTA (Empeora)
+
 |   ResNet    |   Basic18_Standard   |    64x64    | HFlip & ShiftScaleRotate | 50k - 145000 epoch |    76.45   |    90.85   |    0.894    |
+
 |   SENet     |    PreAct34_Small    |    64x64    | HFlip & ShiftScaleRotate | 50k - 145000 epoch |    77.60   |    90.65   |             |
+
 | MobileNetv2 |        Standard      |    64x64    |           HFlip          | 50k - 145000 epoch |    76.65   |    90.57   |             | >>> scheduler
 | MobileNetv2 |        Standard      |    64x64    |            No            | 50k - 200000 epoch |    77.34   |    91.74   |    0.883    | >>> steps lr 0.35, 0.1 ...
+
 |   VGG       |     QDrawLargeVGG    |   224x224   |            No            | 50k - 200000 epoch |    71.65   |    86.57   |             |
 
 
