@@ -105,6 +105,5 @@ def DenseNetModel(res_name, growth_rate, gray):
     elif 'Standard161' in res_name: my_model = DenseNet(Bottleneck, [6,12,36,24], gray, growth_rate=48)
 
     if my_model:
-        my_model.net_type = "convolutional"
         return my_model
     else: assert False, 'No models different from Basic or Bottlenet Blocks'

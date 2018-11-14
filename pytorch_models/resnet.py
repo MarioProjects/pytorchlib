@@ -6,11 +6,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
-from collections import OrderedDict
 from pytorchlib.pytorch_library import utils_nets
 
-SHORTCUT_ADD_NAME = "ShortcutAdd"
-SHORTCUT_JUMP_NAME = "ShortcutJump"
 
 cfg_blocks = {
     '18': [2,2,2,2],
@@ -29,18 +26,18 @@ cfg_maps = {
 class BasicBlock(nn.Module):
     expansion = 1
 
-    def __init__(self, in_planes, planes, stride=1, append2name=""):
+    def __init__(self, in_planes, planes, stride=1):
         super(BasicBlock, self).__init__()
 
         self.block_forward = []
-        self.block_forward.append(utils_nets.apply_conv(in_planes, planes, kernel=(3,3), stride=stride, padding=1, activation='relu', std=0.0, dropout=0.0, batchnorm=True, name_append=append2name))
-        self.block_forward.append(utils_nets.apply_conv(planes, planes, kernel=(3,3), stride=1, padding=1, activation='linear', std=0.0, dropout=0.0, batchnorm=True, name_append=append2name))
+        self.block_forward.append(utils_nets.apply_conv(in_planes, planes, kernel=(3,3), stride=stride, padding=1, activation='relu', std=0.0, dropout=0.0, batchnorm=True))
+        self.block_forward.append(utils_nets.apply_conv(planes, planes, kernel=(3,3), stride=1, padding=1, activation='linear', std=0.0, dropout=0.0, batchnorm=True))
         self.block_forward = nn.Sequential(*self.block_forward)
 
         if stride != 1 or in_planes != self.expansion*planes:
-            self.shortcut = utils_nets.apply_conv(in_planes, self.expansion*planes, kernel=1, stride=stride, padding=0, activation='linear', std=0.0, dropout=0.0, batchnorm=True, name_append="_"+SHORTCUT_JUMP_NAME+append2name)
+            self.shortcut = utils_nets.apply_conv(in_planes, self.expansion*planes, kernel=1, stride=stride, padding=0, activation='linear', std=0.0, dropout=0.0, batchnorm=True)
         else:
-            self.shortcut = nn.Sequential(OrderedDict([("_"+SHORTCUT_ADD_NAME+append2name, nn.Sequential())]))
+            self.shortcut = nn.Sequential(nn.Sequential())
 
     def forward(self, x):
         out = self.block_forward(x)
@@ -52,19 +49,19 @@ class BasicBlock(nn.Module):
 class Bottleneck(nn.Module):
     expansion = 4
 
-    def __init__(self, in_planes, planes, stride=1, append2name=""):
+    def __init__(self, in_planes, planes, stride=1):
         super(Bottleneck, self).__init__()
 
         self.block_forward = []
-        self.block_forward.append(utils_nets.apply_conv(in_planes, planes, kernel=1, stride=1, padding=1, activation='relu', std=0.0, dropout=0.0, batchnorm=True, name_append=append2name))
-        self.block_forward.append(utils_nets.apply_conv(planes, planes, kernel=3, stride=stride, padding=1, activation='relu', std=0.0, dropout=0.0, batchnorm=True, name_append=append2name))
-        self.block_forward.append(utils_nets.apply_conv(planes, self.expansion*planes, kernel=1, stride=1, padding=0, activation='linear', std=0.0, dropout=0.0, batchnorm=True, name_append=append2name))
+        self.block_forward.append(utils_nets.apply_conv(in_planes, planes, kernel=1, stride=1, padding=1, activation='relu', std=0.0, dropout=0.0, batchnorm=True))
+        self.block_forward.append(utils_nets.apply_conv(planes, planes, kernel=3, stride=stride, padding=1, activation='relu', std=0.0, dropout=0.0, batchnorm=True))
+        self.block_forward.append(utils_nets.apply_conv(planes, self.expansion*planes, kernel=1, stride=1, padding=0, activation='linear', std=0.0, dropout=0.0, batchnorm=True))
         self.block_forward = nn.Sequential(*self.block_forward)
 
         if stride != 1 or in_planes != self.expansion*planes:
-            self.shortcut = utils_nets.apply_conv(in_planes, self.expansion*planes, kernel=1, stride=stride, padding=0, activation='linear', std=0.0, dropout=0.0, batchnorm=True, name_append="_"+SHORTCUT_JUMP_NAME+append2name)
+            self.shortcut = utils_nets.apply_conv(in_planes, self.expansion*planes, kernel=1, stride=stride, padding=0, activation='linear', std=0.0, dropout=0.0, batchnorm=True)
         else:
-            self.shortcut = nn.Sequential(OrderedDict([("_"+SHORTCUT_ADD_NAME+append2name, nn.Sequential())]))
+            self.shortcut = nn.Sequential(nn.Sequential())
 
     def forward(self, x):
 
@@ -91,16 +88,16 @@ class ResNet(nn.Module):
         # La primera configuration_maps no la queremos ya que ya la hemos usado en conv1
         for indx, (channels, num_blocks) in enumerate(zip(configuration_maps[1:], configuration_blocks)):
             stride = 1 if indx == 0 else 2
-            resnet_layers.append(self._make_layer(block, channels, num_blocks, stride=stride, append2name="_Block"+str(indx)))
+            resnet_layers.append(self._make_layer(block, channels, num_blocks, stride=stride))
 
         self.forward_conv = nn.Sequential(*resnet_layers)
-        self.linear = nn.Sequential(OrderedDict([("FC_OUT", nn.Linear(flat_size, num_classes))]))
+        self.linear = nn.Sequential(nn.Linear(flat_size, num_classes))
 
-    def _make_layer(self, block, planes, num_blocks, stride, append2name):
+    def _make_layer(self, block, planes, num_blocks, stride):
         strides = [stride] + [1]*(num_blocks-1)
         layers = []
         for stride in strides:
-            layers.append(block(self.in_planes, planes, stride, append2name=append2name))
+            layers.append(block(self.in_planes, planes, stride))
             self.in_planes = planes * block.expansion
         return nn.Sequential(*layers)
 
@@ -126,7 +123,6 @@ def ResNetModel(configuration_blocks, configuration_maps, block_type, gray, flat
     else: assert False, "No block type '"+str(block_type)+"' allowed!"
 
     my_model = ResNet(block_type, configuration_blocks, configuration_maps, gray, flat_size, num_classes)
-    my_model.net_type = "convolutional"
     return my_model
 
 

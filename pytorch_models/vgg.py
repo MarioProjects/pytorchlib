@@ -54,16 +54,12 @@ class VGG(nn.Module):
             last_layer = indx+1 == len(cfg[vgg_name]) or (indx+2 == len(cfg[vgg_name]) and cfg[vgg_name][-1] == "|")
 
             if channels == 'M':
-                if not last_layer: append2name = "_Conv" + str(num_layers-1)
-                else: append2name = "_Conv" + str(num_layers-1) + "_OUT"
-                conv_layers.append(utils_nets.apply_pool("max_pool", 2, 2, name_append=append2name))
+                conv_layers.append(utils_nets.apply_pool("max_pool", 2, 2))
             else:
-                if not last_layer: append2name = "_Conv" + str(num_layers)
-                else: append2name = "_Conv" + str(num_layers) + "_OUT"
                 if dropout and dropout_values[vgg_name][indx] != 0:
-                    conv_layers.append(utils_nets.apply_conv(in_channels, channels, kernel=(3,3), activation='relu', std=ruido, padding=1, dropout=dropout_values[vgg_name][indx], batchnorm=True, name_append=append2name))
+                    conv_layers.append(utils_nets.apply_conv(in_channels, channels, kernel=(3,3), activation='relu', std=ruido, padding=1, dropout=dropout_values[vgg_name][indx], batchnorm=True))
                 else:
-                    conv_layers.append(utils_nets.apply_conv(in_channels, channels, kernel=(3,3), activation='relu', std=ruido, padding=1, dropout=0.0, batchnorm=True, name_append=append2name))
+                    conv_layers.append(utils_nets.apply_conv(in_channels, channels, kernel=(3,3), activation='relu', std=ruido, padding=1, dropout=0.0, batchnorm=True))
 
                 in_channels = channels
                 num_layers += 1
@@ -89,5 +85,4 @@ def VGGModel(vgg_name, flat_size, dropout, ruido, gray, num_classes=2):
         assert False, 'No VGG Model with that name!'
     else:
         my_model = VGG(vgg_name, flat_size, dropout, ruido, gray, num_classes=num_classes)
-        my_model.net_type = "convolutional"
         return my_model

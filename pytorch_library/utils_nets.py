@@ -1,22 +1,6 @@
 import numpy as np
 import torch
 import torch.nn as nn
-from collections import OrderedDict
-
-LINEAR_NAME = "Linear"
-CONV2D_NAME = "Conv2D"
-BATCHNORM1D_NAME = "BatchNorm1D"
-BATCHNORM2D_NAME = "BatchNorm2D"
-GAUSSIANNOISE_NAME = "GaussianNoise"
-DROPOUT1D_NAME = "Dropout1D"
-DROPOUT1D_NAME = "Dropout2D"
-MAXPOOL_NAME = "MAXPool"
-AVGPOOL_NAME = "AVGPool"
-ACT_RELU_NAME = "ACT_ReLU"
-ACT_SOFTMAX_NAME = "ACT_Softmax"
-ACT_LINEAR_NAME = "ACT_Linear"
-ACT_TANH_NAME = "ACT_Tanh"
-ACT_SIGMOID_NAME = "ACT_Sigmoid"
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -50,28 +34,26 @@ class GaussianNoise(nn.Module):
 
 
 def get_activation(act, dim=1):
-    if act == 'relu': return ACT_RELU_NAME, nn.ReLU()
-    elif act == 'softmax': return ACT_SOFTMAX_NAME, nn.Softmax(dim)
-    elif act == 'sigmoid': return ACT_SIGMOID_NAME, nn.Sigmoid()
-    elif act == 'tanh': return ACT_TANH_NAME, nn.Tanh()
+    if act == 'relu': return nn.ReLU()
+    elif act == 'softmax': return nn.Softmax(dim)
+    elif act == 'sigmoid': return nn.Sigmoid()
+    elif act == 'tanh': return nn.Tanh()
     # Con linear no modificamos la entrada
     # no hacemos nada === nn.Sequential()
-    elif act == 'linear': return ACT_LINEAR_NAME, nn.Sequential()
+    elif act == 'linear': return nn.Sequential()
     else: assert False, "Not valid activation function!"
 
 
 def apply_linear(in_features, out_features, activation, std=0.0, dropout=0.0, batchnorm=True, name_append=""):
-
     # define the sequential
     use_bias = False if batchnorm else True
     forward_list = []
-    forward_list.append((LINEAR_NAME + name_append, nn.Linear(in_features, out_features, bias=use_bias)))
-    if batchnorm: forward_list.append((BATCHNORM1D_NAME + name_append, nn.BatchNorm1d(out_features)))
-    if std != 0.0: forward_list.append((GAUSSIANNOISE_NAME + name_append, GaussianNoise(std=std)))
-    name_activation, activation = get_activation(activation)
-    forward_list.append((name_activation + name_append, activation))
-    if dropout != 0.0: forward_list.append((DROPOUT1D_NAME + name_append, nn.Dropout(dropout)))
-    return nn.Sequential(OrderedDict(forward_list))
+    forward_list.append(nn.Linear(in_features, out_features, bias=use_bias))
+    if batchnorm: forward_list.append(nn.BatchNorm1d(out_features))
+    if std != 0.0: forward_list.append(GaussianNoise(std=std))
+    forward_list.append(get_activation(activation))
+    if dropout != 0.0: forward_list.append(nn.Dropout(dropout))
+    return nn.Sequential(forward_list)
 
 
 def apply_conv(in_features, out_features, kernel=(3,3), activation="relu", std=0.0, dropout=0.0, batchnorm=True, stride=1, padding=0, name_append="", bias=True):
@@ -79,13 +61,12 @@ def apply_conv(in_features, out_features, kernel=(3,3), activation="relu", std=0
     # define the sequential
     use_bias = False if batchnorm or not bias else True
     forward_list = []
-    forward_list.append((CONV2D_NAME + name_append, nn.Conv2d(in_features, out_features, kernel, bias=use_bias, padding=padding, stride=stride)))
-    if batchnorm: forward_list.append((BATCHNORM2D_NAME + name_append, nn.BatchNorm2d(out_features)))
-    if std != 0.0: forward_list.append((GAUSSIANNOISE_NAME + name_append, GaussianNoise(std=std)))
-    name_activation, activation = get_activation(activation)
-    forward_list.append((name_activation + name_append, activation))
-    if dropout != 0.0: forward_list.append((DROPOUT2D_NAME + name_append, nn.Dropout(dropout)))
-    return nn.Sequential(OrderedDict(forward_list))
+    forward_list.append(nn.Conv2d(in_features, out_features, kernel, bias=use_bias, padding=padding, stride=stride))
+    if batchnorm: forward_list.append(nn.BatchNorm2d(out_features))
+    if std != 0.0: forward_list.append(GaussianNoise(std=std))
+    forward_list.append(get_activation(activation))
+    if dropout != 0.0: forward_list.append(nn.Dropout(dropout))
+    return nn.Sequential(*forward_list)
 
 
 def apply_DeConv(in_features, out_features, kernel, activation, std=0.0, dropout=0.0, batchnorm=True, stride=1, padding=1, output_padding=0):
@@ -102,10 +83,10 @@ def apply_DeConv(in_features, out_features, kernel, activation, std=0.0, dropout
 
 def apply_pool(pool_type, kernel_size, stride_size, name_append=""):
     pool_list = []
-    if pool_type == "max_pool": pool_list.append((MAXPOOL_NAME + name_append, nn.MaxPool2d(kernel_size=kernel_size, stride=stride_size)))
-    elif pool_type == "avg_pool": pool_list.append((AVGPOOL_NAME + name_append, nn.AvgPool2d(kernel_size=kernel_size, stride=stride_size)))    
+    if pool_type == "max_pool": pool_list.append(nn.MaxPool2d(kernel_size=kernel_size, stride=stride_size))
+    elif pool_type == "avg_pool": pool_list.append(nn.AvgPool2d(kernel_size=kernel_size, stride=stride_size))
     else: assert False, "Not valid pool!"
-    return nn.Sequential(OrderedDict(pool_list))
+    return nn.Sequential(pool_list)
 
 
 def apply_DePool(kernel):

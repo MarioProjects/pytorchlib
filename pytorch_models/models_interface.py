@@ -1,3 +1,7 @@
+'''
+    https://pytorch.org/tutorials/beginner/saving_loading_models.html
+'''
+
 import torch
 from torchvision import datasets, models, transforms
 import torch.nn as nn
@@ -40,7 +44,7 @@ def select_model(model_name, model_config=[], flat_size=0, in_features=0, out_fe
 
     elif 'MobileNetv2' in model_name:
         my_model = MobileNetv2Model(model_config, gray, out_features, flat_size, last_pool_size).cuda()
-    
+
     elif 'SENet' in model_name:
         my_model = SENetModel(model_config[0], model_config[1], block_type, gray, flat_size=flat_size, num_classes=out_features).cuda()
 
@@ -81,10 +85,7 @@ def select_model(model_name, model_config=[], flat_size=0, in_features=0, out_fe
         if "DENSENET161" == model_config: my_model = models.densenet161(pretrained=pretrained)
         if "DENSENET201" == model_config: my_model = models.densenet201(pretrained=pretrained)
 
-
-        my_model.net_type = "convolutional"
         # Si queremos reentrenar un modelo reemplazamos la ultima capa de salida
-
         if out_features:
 
             # Here, we need to freeze all the network except the final layer.
@@ -123,9 +124,14 @@ def select_model(model_name, model_config=[], flat_size=0, in_features=0, out_fe
     return my_model
 
 
-def load_model(model_name, model_config=[], states_path="", gray=0, dropout=0.0, ruido=0.0, growth_rate=0, in_features=0, flat_size=0, out_features=0, out_type='relu', block_type=None, last_pool_size=0):
+def load_model(model_name, model_config=[], states_path="", model_path="", gray=0, dropout=0.0, ruido=0.0, growth_rate=0, in_features=0, flat_size=0, out_features=0, out_type='relu', block_type=None, last_pool_size=0):
+
+    if model_path!="" and os.path.exists(model_path):
+        return torch.load(model_path)
+    elif model_path != "": assert False, "Wrong Model Path!"
 
     if not os.path.exists(states_path): assert False, "Wrong Models_States Path!"
+
     my_model = select_model(model_name, model_config=model_config, dropout=dropout, ruido=ruido, gray=gray, growth_rate=growth_rate, flat_size=flat_size, in_features=in_features, out_type=out_type, block_type=block_type, out_features=out_features, last_pool_size=last_pool_size)
     model_state_dict = torch.load(states_path)
 

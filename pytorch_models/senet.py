@@ -6,7 +6,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from collections import OrderedDict
 from pytorchlib.pytorch_library import utils_nets
 
 cfg_blocks = {
@@ -25,7 +24,7 @@ cfg_maps = {
 
 
 class BasicBlock(nn.Module):
-    def __init__(self, in_planes, planes, stride=1, dropout=0.0, std=0.0, append2name=""):
+    def __init__(self, in_planes, planes, stride=1, dropout=0.0, std=0.0):
         super(BasicBlock, self).__init__()
         self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(planes)
@@ -42,9 +41,9 @@ class BasicBlock(nn.Module):
         # SE layers
         se_layers = []
         se_layers.append(utils_nets.apply_conv(planes, planes//16, activation="relu", std=std, kernel=1,
-                                                dropout=dropout, batchnorm=False, name_append=append2name))
+                                                dropout=dropout, batchnorm=False))
         se_layers.append(utils_nets.apply_conv(planes//16, planes, activation="sigmoid", std=std, kernel=1,
-                                                dropout=dropout, batchnorm=False, name_append=append2name))
+                                                dropout=dropout, batchnorm=False))
         self.se_operation = nn.Sequential(*se_layers)
 
 
@@ -65,7 +64,7 @@ class BasicBlock(nn.Module):
 
 
 class PreActBlock(nn.Module):
-    def __init__(self, in_planes, planes, stride=1, dropout=0.0, std=0.0, append2name=""):
+    def __init__(self, in_planes, planes, stride=1, dropout=0.0, std=0.0):
         super(PreActBlock, self).__init__()
         self.bn1 = nn.BatchNorm2d(in_planes)
         self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
@@ -80,9 +79,9 @@ class PreActBlock(nn.Module):
         # SE layers
         se_layers = []
         se_layers.append(utils_nets.apply_conv(planes, planes//16, activation="relu", std=std, kernel=1,
-                                                dropout=dropout, batchnorm=False, name_append=append2name))
+                                                dropout=dropout, batchnorm=False))
         se_layers.append(utils_nets.apply_conv(planes//16, planes, activation="sigmoid", std=std, kernel=1,
-                                                dropout=dropout, batchnorm=False, name_append=append2name))
+                                                dropout=dropout, batchnorm=False))
         self.se_operation = nn.Sequential(*se_layers)
 
 
@@ -121,17 +120,17 @@ class SENet(nn.Module):
         # La primera configuration_maps no la queremos ya que ya la hemos usado en conv1
         for indx, (channels, num_blocks) in enumerate(zip(configuration_maps[1:], configuration_blocks)):
             stride = 1 if indx == 0 else 2
-            senet_layers.append(self._make_layer(block, channels, num_blocks, stride, append2name="_Block"+str(indx)))
+            senet_layers.append(self._make_layer(block, channels, num_blocks, stride))
 
         self.forward_conv = nn.Sequential(*senet_layers)
-        self.linear = nn.Sequential(OrderedDict([("FC_OUT", nn.Linear(flat_size, num_classes))]))
+        self.linear = nn.Sequential(nn.Linear(flat_size, num_classes))
 
 
-    def _make_layer(self, block, planes, num_blocks, stride, append2name=""):
+    def _make_layer(self, block, planes, num_blocks, stride):
         strides = [stride] + [1]*(num_blocks-1)
         layers = []
         for stride in strides:
-            layers.append(block(self.in_planes, planes, stride=stride, append2name=append2name))
+            layers.append(block(self.in_planes, planes, stride=stride))
             self.in_planes = planes
         return nn.Sequential(*layers)
 
@@ -157,5 +156,4 @@ def SENetModel(configuration_blocks, configuration_maps, block_type, gray, flat_
     else: assert False, "No block type '"+str(block_type)+"' allowed!"
 
     my_model = SENet(block_type, configuration_blocks, configuration_maps, gray, flat_size, num_classes)
-    my_model.net_type = "convolutional"
     return my_model

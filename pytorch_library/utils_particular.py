@@ -9,7 +9,6 @@ import cv2
 class MiMicNetCombined(nn.Module):
     def __init__(self, mimicOriginal, addedOut):
         super(MiMicNetCombined, self).__init__()
-        self.net_type = mimicOriginal.net_type
 
         self.orginal_net = nn.Sequential(mimicOriginal)
         self.out = nn.Sequential(addedOut)

@@ -110,14 +110,14 @@ def simple_target_creator(samples, value):
     return Variable(torch.ones(samples, 1)).type(torch.cuda.FloatTensor)*value
 
 
-def train_simple_model(model, data, target, loss, optimizer, out_pos=-1, target_one_hot=False):
+def train_simple_model(model, data, target, loss, optimizer, out_pos=-1, target_one_hot=False, net_type="convolutional"):
     # Losses: https://pytorch.org/docs/stable/nn.html
     model.train()
     optimizer.zero_grad()
 
-    if model.net_type == "fully-connected":
+    if net_type == "fully-connected":
         model_out = model.forward(Variable(data.float().view(data.shape[0], -1)))
-    elif model.net_type == "convolutional":
+    elif net_type == "convolutional":
         model_out = model.forward(Variable(data.float()))
 
     # Algunos modelos devuelven varias salidas como pueden ser la capa
@@ -181,7 +181,7 @@ def topk_accuracy(output, target, topk=(1,)):
             res.append(correct[:k].view(-1).float().sum(0, keepdim=True))
         return res
 
-def evaluate_accuracy_models_generator(models, data, max_data=0, topk=(1,), target_one_hot=False):
+def evaluate_accuracy_models_generator(models, data, max_data=0, topk=(1,), target_one_hot=False, net_type="convolutional"):
     """Computes the accuracy (sobre 1) over the k top predictions for the specified values of k"""
     # Si paso un modelo y topk(1,5) -> acc1, acc5,
     # Si paso dos modelo y topk(1,5) -> m1_acc1, m1_acc5, m2_acc1, m2_acc5
@@ -201,9 +201,9 @@ def evaluate_accuracy_models_generator(models, data, max_data=0, topk=(1,), targ
             # calculo predicciones para el error de test de todos los modelos
             # Tengo que hacer el forward para cada modelo y ver que clases acierta
             for model_indx, model in enumerate(models):
-                if model.net_type == "fully-connected":
+                if net_type == "fully-connected":
                     model_out = model.forward(Variable(batch.float().view(batch.shape[0], -1).cuda()))
-                elif model.net_type == "convolutional":
+                elif net_type == "convolutional":
                     model_out = model.forward(Variable(batch.float().cuda()))
                 else: assert False, "Please define your model type!"
 
@@ -231,7 +231,7 @@ def evaluate_accuracy_models_generator(models, data, max_data=0, topk=(1,), targ
     if len(accuracies) == 1: return accuracies[0]
     return accuracies
 
-def evaluate_accuracy_models_data(models, X_data, y_data, batch_size=100, max_data=0, topk=(1,)):
+def evaluate_accuracy_models_data(models, X_data, y_data, batch_size=100, max_data=0, topk=(1,), net_type="convolutional"):
     """Computes the accuracy over the k top predictions for the specified values of k"""
     # Si paso un modelo y topk(1,5) -> acc1, acc5,
     # Si paso dos modelo y topk(1,5) -> m1_acc1, m1_acc5, m2_acc1, m2_acc5
@@ -256,9 +256,9 @@ def evaluate_accuracy_models_data(models, X_data, y_data, batch_size=100, max_da
             # calculo predicciones para el error de test de todos los modelos
             # Tengo que hacer el forward para cada modelo y ver que clases acierta
             for model_indx, model in enumerate(models):
-                if model.net_type == "fully-connected":
+                if net_type == "fully-connected":
                     model_out = model.forward(Variable(batch.float().view(batch.shape[0], -1).cuda()))
-                elif model.net_type == "convolutional":
+                elif net_type == "convolutional":
                     model_out = model.forward(Variable(batch.float().cuda()))
                 else: assert False, "Please define your model type!"
 
@@ -286,10 +286,8 @@ def evaluate_accuracy_models_data(models, X_data, y_data, batch_size=100, max_da
     if len(accuracies) == 1: return accuracies[0]
     return accuracies
 
-def predictions_models_data(models, X_data, batch_size=100):
+def predictions_models_data(models, X_data, batch_size=100, net_type="convolutional"):
     """Computes the predictions for the specified data X_data"""
-    # Si paso un modelo y topk(1,5) -> acc1, acc5,
-    # Si paso dos modelo y topk(1,5) -> m1_acc1, m1_acc5, m2_acc1, m2_acc5
     with torch.no_grad():
 
         outs_models, total_samples = [torch.zeros(0,0).cuda()]*len(models), 0
@@ -305,9 +303,9 @@ def predictions_models_data(models, X_data, batch_size=100):
             # calculo predicciones para el error de test de todos los modelos
             # Tengo que hacer el forward para cada modelo y ver que clases acierta
             for model_indx, model in enumerate(models):
-                if model.net_type == "fully-connected":
+                if net_type == "fully-connected":
                     model_out = model.forward(Variable(batch.float().view(batch.shape[0], -1).cuda()))
-                elif model.net_type == "convolutional":
+                elif net_type == "convolutional":
                     model_out = model.forward(Variable(batch.float().cuda()))
                 else: assert False, "Please define your model type!"
 

@@ -4,7 +4,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
-from collections import OrderedDict
 from pytorchlib.pytorch_library import utils_nets
 
 MLP_CONFIGURATIONS = {
@@ -34,7 +33,6 @@ class MLPNet(nn.Module):
     """
     def __init__(self, mlp_cfg, in_features, out_type, dropout=0.0, std=0.0, batchnorm=True, default_act="relu"):
         super(MLPNet, self).__init__()
-        self.net_type = "fully-connected"
 
         # Check if choosed prebuilt configuration
         if type(mlp_cfg) is str: mlp_cfg = MLP_CONFIGURATIONS[mlp_cfg]
@@ -45,9 +43,6 @@ class MLPNet(nn.Module):
             else:
                 self.get_output.append(False)
                 last_layer = indx+1 == len(mlp_cfg) or (indx+2 == len(mlp_cfg) and mlp_cfg[-1] == "|")
-
-                if not last_layer: append2name = "_Seq" + str(num_layers)
-                else: append2name = "_Seq" + str(num_layers) + "_OUT"
 
                 """
                 - You can access the components through their names as follows:
@@ -63,7 +58,7 @@ class MLPNet(nn.Module):
 
                 if last_layer:  default_act, dropout, std = out_type, 0.0, 0.0
                 layer = utils_nets.apply_linear(in_features, n_features, default_act, std=std, 
-                                                dropout=dropout, batchnorm=batchnorm, name_append=append2name)
+                                                dropout=dropout, batchnorm=batchnorm)
 
                 linear_layers.append(layer)
                 # Cambiamos las ultimas neuronas de entrada para poder conectar las capas correctamente
@@ -100,7 +95,6 @@ class ConvNet(nn.Module):
     """
     def __init__(self, out_type='relu', dropout=0.0, std=0.0):
         super(ConvNet, self).__init__()
-        self.net_type = "convolutional"
 
         self.num_channels = 8
 

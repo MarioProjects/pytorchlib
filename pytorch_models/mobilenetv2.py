@@ -115,5 +115,4 @@ def MobileNetv2Model(mobilenet_name, gray, num_classes, flat_size, last_pool_siz
         assert False, 'No MobileNetv2 Model with that name!'
     else:
         my_model = MobileNetV2(mobilenet_name, gray, flat_size, last_pool_size, num_classes)
-        my_model.net_type = "convolutional"
         return my_model
