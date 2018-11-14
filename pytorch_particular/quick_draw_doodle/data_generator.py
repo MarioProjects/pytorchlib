@@ -67,7 +67,9 @@ def df_to_image_array_doodle(df, size, lw=6, time_color=True, transforms=[], nor
         for indx, (sample) in enumerate(x):
             for transform in transforms:
                 sample = custom_transforms.apply_albumentation(transform, sample)
-            xt.append(sample)
+            #xt.append(sample)
+            sample = np.array(sample)
+            xt.append(sample.reshape(sample.shape[0], sample.shape[1], 1))
     if xt!=[]: x = np.array(xt)
     x = torch.from_numpy(x)
     x = x.permute(0,3,1,2) # Necesitamos los canales en la segunda posicion

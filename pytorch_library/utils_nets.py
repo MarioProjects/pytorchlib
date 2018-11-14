@@ -129,20 +129,20 @@ def models_average(outputs, scheme, vector_solution=True):
     # El esquema de la suma sumamos las probabilidades
     # de las salidas que se nos proporcionan
     if scheme == "sum":
-        result = outputs[0]
+        result = outputs[0].clone()
         for output in outputs[1:]:
-            result += output
+            result += output.clone()
 
     # En el esquema por votacion cada clase vota su clase de mayor probabilidad
     # y finalmente la clase mas votada por las salidas es la resultante
     elif scheme == "voting":
         # one_zeros es la matriz de salida transformada a 1 para la clase de mayor
         # probabilidad y 0s en el resto
-        one_zeros = (outputs[0] == outputs[0].max(axis=1)[:,None]).astype(int)
+        one_zeros = (outputs[0].clone() == outputs[0].clone().max(axis=1)[:,None]).astype(int)
         result = one_zeros
         for output in outputs[1:]:
             one_zeros = (output == output.max(axis=1)[:,None]).astype(int)
-            result += one_zeros
+            result += one_zeros.clone()
 
     else: assert False, "Ivalid model average scheme!"
         

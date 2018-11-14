@@ -286,6 +286,44 @@ def evaluate_accuracy_models_data(models, X_data, y_data, batch_size=100, max_da
     if len(accuracies) == 1: return accuracies[0]
     return accuracies
 
+def evaluate_accuracy_models_predictions(model_out, y_data, batch_size=100, max_data=0, topk=(1,), net_type="convolutional"):
+    """Computes the accuracy over the k top predictions for the specified values of k"""
+    # Si paso un modelo y topk(1,5) -> acc1, acc5,
+    # Solo permite pasar una salida models_out!
+    with torch.no_grad():
+
+        if type(topk)==int:
+            maxk = topk
+            topk = (topk,)
+        else: maxk = max(topk)
+
+        # Algunos modelos devuelven varias salidas como pueden ser la capa
+        # reshape y los logits, etc... Por lo que se establece el standar
+        # de que la ultima salida sean los logits del modelo para hacer la clasificacion
+        if type(model_out) is list or type(model_out) is tuple:
+            model_out = model_out[-1]
+
+        correct_models, total_samples = 0, 0
+
+        total_samples = 0
+        while True:
+
+            # Debemos comprobar que no nos pasamos con el batch_size
+            if total_samples + batch_size >= len(model_out): batch_size = (len(model_out)) - total_samples
+
+            batch_out = model_out[total_samples:total_samples+batch_size]
+            target = y_data[total_samples:total_samples+batch_size]
+
+            # Transformamos los logits a salida con el indice con el mayor valor
+            #  de las tuplas que continen los logits
+            res_topk = np.array(topk_accuracy(batch_out, target.cuda(), topk=topk))
+            correct_models += res_topk
+
+            total_samples+=batch_size
+            if max_data != 0 and total_samples >= max_data or total_samples == len(model_out): break
+
+    return (correct_models*1.0 / total_samples)
+
 def predictions_models_data(models, X_data, batch_size=100, net_type="convolutional"):
     """Computes the predictions for the specified data X_data"""
     with torch.no_grad():
