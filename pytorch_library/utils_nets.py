@@ -53,7 +53,7 @@ def apply_linear(in_features, out_features, activation, std=0.0, dropout=0.0, ba
     if std != 0.0: forward_list.append(GaussianNoise(std=std))
     forward_list.append(get_activation(activation))
     if dropout != 0.0: forward_list.append(nn.Dropout(dropout))
-    return nn.Sequential(forward_list)
+    return nn.Sequential(*forward_list)
 
 
 def apply_conv(in_features, out_features, kernel=(3,3), activation="relu", std=0.0, dropout=0.0, batchnorm=True, stride=1, padding=0, name_append="", bias=True):
@@ -86,7 +86,7 @@ def apply_pool(pool_type, kernel_size, stride_size, name_append=""):
     if pool_type == "max_pool": pool_list.append(nn.MaxPool2d(kernel_size=kernel_size, stride=stride_size))
     elif pool_type == "avg_pool": pool_list.append(nn.AvgPool2d(kernel_size=kernel_size, stride=stride_size))
     else: assert False, "Not valid pool!"
-    return nn.Sequential(pool_list)
+    return nn.Sequential(*pool_list)
 
 
 def apply_DePool(kernel):

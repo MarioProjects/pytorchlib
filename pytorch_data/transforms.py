@@ -208,7 +208,7 @@ def single_normalize(feats, norm):
         feats/=(max_val-min_val)
 
 
-    elif norm=='-1_1range' or 'np_range':
+    elif norm=='-1_1range' or norm=='np_range':
         max_val=feats.max()
         min_val=feats.min()
         feats*=2

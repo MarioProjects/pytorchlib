@@ -11,8 +11,12 @@ import pytorchlib.pytorch_data.transforms as custom_transforms
 import pytorchlib.pytorch_library.utils_particular as utils_particular
 import pytorchlib.pytorch_library.utils_training as utils_training
 
+import albumentations
 
 import PIL
+
+CAT2CLASS = {"male": 0, "female": 1}
+IMG_BASE_SIZE = 100
 
 def load_img(path):
     return np.array(PIL.Image.open(path).convert('RGB'))
@@ -26,7 +30,7 @@ class FoldersDatasetVGGFace2(data.Dataset):
         cat2class: diccionario con claves clas clases y valor la codificacion
             de cada clase. Ejemplo {'perro':0, 'gato':1}
     """
-    def __init__(self, data_path, transforms=[], cat2class=[]):
+    def __init__(self, data_path, transforms=[], cat2class=[], normalization=""):
         different_classes, all_paths, all_classes = [], [], []
         for path, subdirs, files in os.walk(data_path):
             for name in files:
@@ -37,14 +41,21 @@ class FoldersDatasetVGGFace2(data.Dataset):
                 if current_class not in different_classes: different_classes.append(current_class)
 
         #class2cat = dict(zip(np.arange(0, len(different_classes)), different_classes))
-        if cat2class==[]: cat2class = dict(zip(different_classes, np.arange(0, len(different_classes))))
+        if cat2class==[]: cat2class = CAT2CLASS
 
         for indx, c_class in enumerate(all_classes):
             all_classes[indx] = cat2class[c_class]
-        
+
         self.imgs_paths = all_paths
         self.labels = all_classes
-        
+
+        self.norm = normalization
+        self.transforms = transforms
+
+
+    def __getitem__(self,index):
+        img = load_img(self.imgs_paths[index])
+
         """ https://arxiv.org/pdf/1710.08092.pdf
         Training implementation details. All the networks are
         trained for classification using the soft-max loss function.
@@ -63,17 +74,22 @@ class FoldersDatasetVGGFace2(data.Dataset):
         rate for model fine-tuning starts from 0.005 and decreases
         to 0.001
         """
-        self.transforms = transforms
-        
-        
-    def __getitem__(self,index):
-        img = load_img(self.imgs_paths[index])
-        
+
+        # Primero debemos redimensionar la imagen para que el lado corto mida IMG_BASE_SIZE pixels
+        if img.shape[0] <= img.shape[1]: # Tiene menor o igual el alto
+            ancho = int((IMG_BASE_SIZE * img.shape[1]) / img.shape[0])
+            img = custom_transforms.apply_albumentation(albumentations.Resize(IMG_BASE_SIZE, ancho), img)
+        else:
+            alto = int((IMG_BASE_SIZE * img.shape[0]) / img.shape[1])
+            img = custom_transforms.apply_albumentation(albumentations.Resize(alto, IMG_BASE_SIZE), img)
+
         if self.transforms!=[]:
             for transform in self.transforms:
                 img = custom_transforms.apply_albumentation(transform, img)
-                
-        return torch.from_numpy(img).permute(2,0,1), self.labels[index]
+
+        img = torch.from_numpy(img.astype(np.float32).transpose(2,0,1))
+        if self.norm!="": img = custom_transforms.single_normalize(img, self.norm)
+        return img, self.labels[index]
 
     def __len__(self):
         return len(self.imgs_paths)
