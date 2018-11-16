@@ -65,9 +65,9 @@ model = models_interface.select_model(model_name, model_config=model_config, dro
 """ ---- CONSTANTES DE NUESTRO PROGRAMA ---- """
 
 # Las ultimas 50 las haremos con annealing lineal
-epochs_steps = [50, 100, 100, 50]
-lr_steps = [0.1, 0.01, 0.001, 0.001]
-apply_lr_anneal_lineal = [False, False, False, True]
+epochs_steps = [50, 100, 100, 50, 15, 12]
+lr_steps = [0.1, 0.01, 0.001, 0.001, 0.1, 0.01]
+apply_lr_anneal_lineal = [False, False, False, True, False, True]
 
 # Vamos a utilizar la metrica del error cuadratico medio
 loss_ce = nn.CrossEntropyLoss()

@@ -144,6 +144,50 @@ def train_simple_model(model, data, target, loss, optimizer, out_pos=-1, target_
 
     return cost.item()
 
+def train_cumulative_batch_model(model, data, target, loss, optimizer, out_pos=-1, target_one_hot=False, net_type="convolutional", do_backward=False, last_cost=0):
+    """
+      do_backward: Nos sirve para saber si debemos hacer el backward. La funcion esta pensada para que cuando tengamos cierto coste acumulado de una serie
+                   de batch de datos procesados (que no podemos hacer directamente porque no nos entra en memoria), hagamos entonces el backward.
+      last_cost: Coste del batch anterior (al que no le hemos hecho backward y vamos acumulando). Si es 0 es que es el primer batch a acumular
+    """
+    # Losses: https://pytorch.org/docs/stable/nn.html
+    model.train()
+    optimizer.zero_grad()
+
+    if net_type == "fully-connected":
+        model_out = model.forward(Variable(data.float().view(data.shape[0], -1)))
+    elif net_type == "convolutional":
+        model_out = model.forward(Variable(data.float()))
+
+    # Algunos modelos devuelven varias salidas como pueden ser la capa
+    # reshape y los logits, etc... Para conocer la salida a utilizar en el
+    # loss lo que hacemos es tomar la que se indique en le parametro out_pos
+    if type(model_out) is list or type(model_out) is tuple:
+        model_out = model_out[out_pos]
+
+    # La crossentropia no acepta one hot target en Pytorch
+    if target_one_hot: _, target = target.max(dim=1)
+
+    # Calculo el error obtenido
+    # Cuidado con la codificacion one hot! https://discuss.pytorch.org/t/runtimeerror-multi-target-not-supported-newbie/10216/8
+    try: cost = loss(model_out, target)
+    except:
+        global CROSS_ENTROPY_ONE_HOT_WARNING
+        if not CROSS_ENTROPY_ONE_HOT_WARNING:
+            print("\nWARNING-INFO: Crossentropy not works with one hot target encoding!\n")
+            CROSS_ENTROPY_ONE_HOT_WARNING = True
+        cost = loss(model_out, target[:,0])
+
+    #if last_cost!=0: cost += last_cost
+
+    if do_backward:
+        # Actualizamos pesos y gradientes
+        optimizer.step()
+        return cost.item()
+    else: 
+        cost.backward()
+        #return cost
+
 
 # INPUTS: output have shape of [batch_size, category_count]
 #    and target in the shape of [batch_size] * there is only one true class for each sample
