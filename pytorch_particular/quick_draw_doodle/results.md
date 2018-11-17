@@ -14,7 +14,7 @@
 |   ResNet*   |     Basic34_Small    |    64x64    |            No            | 50k - 200000 epoch |    79.37   |    92.00   |    0.894    | >>> RETRAIN steps lr 0.15...
 ---------------------------------------------------> Al aplicar Test Time Augmentations (4 variantes + Original) paso de 0.894 a  0.888    | >>> TTA (Empeora)
 |   ResNet*   |   Basic18_Standard   |    64x64    | HFlip & ShiftScaleRotate | 50k - 145000 epoch |    76.45   |    90.85   |    0.894    |
-|   ResNet    |   Basic18_Standard   |    64x64    |            No            | All - 200000 epoch |    79.02   |    92.17   |     ???     | >>> Implicit Retrain steps
+|   ResNet    |   Basic18_Standard   |    64x64    |            No            | All - 200000 epoch |    79.02   |    92.17   |    0.897    | >>> Implicit Retrain steps
 |   SENet*    |    PreAct34_Small    |    64x64    | HFlip & ShiftScaleRotate | 50k - 145000 epoch |    77.60   |    90.65   |             |
 | MobileNetv2*|        Standard      |    64x64    |           HFlip          | 50k - 145000 epoch |    76.65   |    90.57   |             | >>> scheduler
 | MobileNetv2*|        Standard      |    64x64    |            No            | 50k - 200000 epoch |    77.34   |    91.74   |    0.883    | >>> steps lr 0.35, 0.1 ...

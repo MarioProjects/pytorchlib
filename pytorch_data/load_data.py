@@ -7,7 +7,6 @@ import numpy as np
 import torch
 from torch.utils import data
 
-import pytorchlib.pytorch_library.utils_particular as utils_particular
 import pytorchlib.pytorch_library.utils_training as utils_training
 
 import albumentations
