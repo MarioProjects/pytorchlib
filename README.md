@@ -1,7 +1,34 @@
 # **Pytorchlib** - A Pytorch library with some helper functions
 
+### Requisitos
+
+Para la utilización de esta 'librería' es necesaria la instalación de algunas librerías de Python. Se recomienda la utilización de entornos virtuales:
+
+```sh
+cd ~
+virtualenv -p python3.5 venv
+source venv/bin/activate
+
+python3 -m pip install numpy pandas scipy matplotlib sklearn scikit-learn scikit-image slackclient torch torchvision
+python3 -m pip install opencv-python albumentations
+
+# Había un problema con ipython y prompt-toolkit (quizás ya resuelto)
+python3 -m pip uninstall ipython
+python3 -m pip install ipython==6.5.0
+python3 -m pip uninstall prompt-toolkit
+python3 -m pip install prompt-toolkit==1.0.15
+
+# ESTO AL BASH
+echo ""  >> ~/.bashrc
+echo ""  >> ~/.bashrc
+echo "# MIS COSAS"  >> ~/.bashrc
+echo "alias venv='source /home/maparla/venv/bin/activate'" >> ~/.bashrc
+echo "venv"  >> ~/.bashrc
+```
+
 ## Pytorch Library
 Es el corazón de la librería. Contiene ayuda para la creación de las distintas redes, para el entrenamiento de las mismas así como funciones de ayuda más genéricas.
+
 
 ##### utils_general.py
 
