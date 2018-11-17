@@ -14,7 +14,7 @@ def slack_message(message, channel):
 
 def images_to_vectors(images):
     """
-    Con esta funcion pasamos las imagenes a vectores -> Flatten
+    Con esta funcion pasamos las imagenes a vectores -> Flatten. Tensores.
     """
     return images.view(images.size(0), -1).type(torch.cuda.FloatTensor)
 
@@ -25,7 +25,7 @@ def vectors_to_images(vectors, width, height, depth):
     """
     return vectors.view(vectors.size(0), depth, width, height).type(torch.cuda.FloatTensor)
 
-def noise(samples, out_features):
+def normal_noise(samples, out_features):
     """
     Con esta funcion creamos tantas muestras como 'samples'
     formadas por ruido gausiano con una distribucion normal
@@ -35,7 +35,7 @@ def noise(samples, out_features):
     return Variable(torch.randn(samples, out_features)).type(torch.cuda.FloatTensor)
 
 
-def time2human(start,end):
+def time_to_human(start,end):
     #### start and end --> time.time()
     #### returns string
     hours, rem = divmod(end-start, 3600)

@@ -14,6 +14,7 @@
 |   ResNet*   |     Basic34_Small    |    64x64    |            No            | 50k - 200000 epoch |    79.37   |    92.00   |    0.894    | >>> RETRAIN steps lr 0.15...
 ---------------------------------------------------> Al aplicar Test Time Augmentations (4 variantes + Original) paso de 0.894 a  0.888    | >>> TTA (Empeora)
 |   ResNet*   |   Basic18_Standard   |    64x64    | HFlip & ShiftScaleRotate | 50k - 145000 epoch |    76.45   |    90.85   |    0.894    |
+|   ResNet    |   Basic18_Standard   |    64x64    |            No            | All - 200000 epoch |    79.02   |    92.17   |     ???     | >>> Implicit Retrain steps
 |   SENet*    |    PreAct34_Small    |    64x64    | HFlip & ShiftScaleRotate | 50k - 145000 epoch |    77.60   |    90.65   |             |
 | MobileNetv2*|        Standard      |    64x64    |           HFlip          | 50k - 145000 epoch |    76.65   |    90.57   |             | >>> scheduler
 | MobileNetv2*|        Standard      |    64x64    |            No            | 50k - 200000 epoch |    77.34   |    91.74   |    0.883    | >>> steps lr 0.35, 0.1 ...
@@ -26,11 +27,12 @@
 
 |   Model Type  |     Configuration    | Images Type |     Data Augmentation    |     Data Usage     |    GPU    |
 |:-------------:|:--------------------:|:-----------:|:------------------------:|:------------------:|:---------:|
-|     ResNet    |   Basic18_Standard   |    64x64    |           No             | All - 200000 epoch |     P12   | >>> Voy a hacer retrain steps lr 0.35 ....
+|     ResNet    |   Basic18_Standard   |    64x64    |           No             | All - 250000 epoch |     P12   | >>> Voy a hacer retrain steps lr 0.35 batch 512 ....
 
 
 ---- PENDING ----
 
+  --> Probar TTA solo con HFLip y probando a ponderar: https://www.kaggle.com/c/quickdraw-doodle-recognition/discussion/71353
   --> Probar a incrementar el batch size haciendo que el coste se vaya 
       aumgentando en una variable y posteriormente variable.backward()
   --> Utilizar imagenes a color! (Mirar en Ideas)
@@ -53,3 +55,12 @@
      ->Try using stroke velocity in 2nd channel and perhaps stroke acceleration in the 3rd channel
      ->There's no temporal info about the different points on a stroke though
      ->There are time stamps for each point in raw data
+
+
+  ->"Augmentation is usually better for small training dataset …"
+        Not true.
+        For this challenge, you should look at the train and test images and think of how to make the train more similar to the test?
+        Especially, check those mis-classified validation images. why are them different from the training set?
+        e.g.
+        incomplete drawing : hence drop stroke can be a good augmentation
+        inclusion of text and arrow : hence add text or arrow can be a good augmentation 

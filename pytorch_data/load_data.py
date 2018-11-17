@@ -1,213 +1,183 @@
 import os
-import gzip
-import time
-import numpy as np
+import cv2
 import pandas as pd
-import pickle
-
-# https://albumentations.readthedocs.io/en/latest/api/index.html
-import albumentations
+import json
+import numpy as np
 
 import torch
-import torch.utils.data as torchdata
-from torch import nn, optim
+from torch.utils import data
 
-from pytorchlib.pytorch_data.dataloader import ConvolutionalDataset
-import pytorchlib.pytorch_data.transforms as custom_transforms
+import pytorchlib.pytorch_library.utils_particular as utils_particular
+import pytorchlib.pytorch_library.utils_training as utils_training
 
-import scipy.io
-import scipy.misc
-from sklearn.model_selection import train_test_split
+import albumentations
 
-#########################
-# DATSETS PARA SAMPLEAR
-##########################
-# a convolutional data wrapper to apply torchvision transformations to home made datasets
+import PIL
 
-def lfw_gender(gray, seed=0, fold_test=0, batch_size=128, norm="None"):
-    '''
-    LOAD LFW DATASET
-    Carga los 5 folds de LFW y y de ellos toma 1 ("fold_test") como test
-    '''
-    if gray: data_path = '/home/maparla/DeepLearning/PytorchDatasets/nplfwdeepfunneled_gray/'
-    else: data_path = '/home/maparla/DeepLearning/PytorchDatasets/nplfwdeepfunneled/'
+def load_img(path):
+    return np.array(PIL.Image.open(path).convert('RGB'))
 
-    """ Extraemos los datos """
-    te_feat, tr_feat = [], []
-    te_labl, tr_labl = [], []
+class FoldersDataset(data.Dataset):
+    """
+        Cargador de prueba de dataset almacenado en carpetas del modo
+            -> train/clase1/TodasImagenes ...
+        data_path: ruta a la carpeta padre del dataset. Ejemplo train/
+        transforms: lista de transformaciones de albumentations a aplicar
+        cat2class: diccionario con claves clas clases y valor la codificacion
+            de cada clase. Ejemplo {'perro':0, 'gato':1}
+    """
+    def __init__(self, data_path, transforms=[], cat2class=[], normalization=""):
+        different_classes, all_paths, all_classes = [], [], []
+        for path, subdirs, files in os.walk(data_path):
+            for name in files:
+                fullpath = os.path.join(path, name)
+                current_class = fullpath.split("/")[-2]
+                all_paths.append(fullpath)
+                all_classes.append(current_class)
+                if current_class not in different_classes: different_classes.append(current_class)
 
-    if gray: load_gray = "_gray"
-    else: load_gray = ""
+        #class2cat = dict(zip(np.arange(0, len(different_classes)), different_classes))
+        if cat2class==[]: cat2class = dict(zip(different_classes, np.arange(0, len(different_classes))))
 
-    for i in range(0,5):
-        if int(fold_test)==i:
-            te_feat = np.load(data_path+"fold"+str(i)+"_data"+load_gray+".npy")
-            te_labl = np.load(data_path+"fold"+str(i)+"_labels.npy")
-        else:
-            tr_feat.append(np.load(data_path+"fold"+str(i)+"_data"+load_gray+".npy"))
-            tr_labl.append(np.load(data_path+"fold"+str(i)+"_labels.npy"))
+        for indx, c_class in enumerate(all_classes):
+            all_classes[indx] = cat2class[c_class]
+        
+        self.imgs_paths = all_paths
+        self.labels = all_classes
+        self.transforms = transforms
+        self.norm= normalization
+        
+    def __getitem__(self,index):
+        img = load_img(self.imgs_paths[index])
+        
+        if self.transforms!=[]:
+            for transform in self.transforms:
+                img = apply_img_albumentation(transform, img)
+                
+        img = torch.from_numpy(img.astype(np.float32).transpose(2,0,1))
+        if self.norm!="": img = single_normalize(img, self.norm)
+        return img, self.labels[index]
 
-    tr_feat = np.concatenate(tr_feat)
-    tr_labl = np.concatenate(tr_labl)
+    def __len__(self):
+        return len(self.imgs_paths)
 
-    # tr_feat = tr_feat.astype('float32').transpose(0,3,1,2)
-    # Debemos hace el transpose para poner los canales delante
-    tr_feat = tr_feat.astype('float32').transpose(0,3,1,2)
-    tr_labl = tr_labl.astype('int64').reshape(-1, 1)
-    te_feat = te_feat.astype('float32').transpose(0,3,1,2)
-    te_labl = te_labl.astype('int64').reshape(-1, 1)
 
-    """ Ordenamos los datos según la semilla, los barajamos (Train) """
+def dataloader_from_numpy(features, targets, batch_size, transforms=[], seed=0, norm="", num_classes=0):
+    """ WARNING: ESTO DEBERIA PODER MEJORAR Y HACER UN DATASET CORRECTAMENTE (mirar FoldersDataset)
+    Generador de loaders generico para numpy arrays
+    transforms: lista con transformaciones albumentations (LISTA y no Compose!)
+    """
     generator = np.random.RandomState(seed=seed)
-    index = generator.permutation(tr_feat.shape[0])
-    tr_feat = tr_feat[index]
-    tr_labl = tr_labl[index]
+    pick_order = n_samples = len(features)
+    pick_per_epoch = n_samples // batch_size
 
-    """ Ordenamos los datos según la semilla, los barajamos (Test) """
-    generator = np.random.RandomState(seed=seed)
-    index = generator.permutation(te_feat.shape[0])
-    te_feat = te_feat[index]
-    te_labl = te_labl[index]
+    #print("""WARNING: This function (dataloader_from_numpy) receives the features with the form [batch, width, height, channels]
+    #        and internally transposes these features to [batch, channels, width, height]""")
 
-    # Los pasamos a torch los datos
-    tr_feat = torch.from_numpy(tr_feat).cuda()
-    tr_labl = torch.from_numpy(tr_labl).cuda()
-    te_feat = torch.from_numpy(te_feat).cuda()
-    te_labl = torch.from_numpy(te_labl).cuda()
-    # Normalizamos los datos
-    tr_feat, te_feat = custom_transforms.normalize(tr_feat, te_feat, norm)
+    while True:  # Infinity loop
+        pick_order = generator.permutation(pick_order)
+        for i in range(pick_per_epoch):
+            current_picks = pick_order[i*batch_size: (i+1)*batch_size]
+            current_features = features[current_picks]
+            current_targets = targets[current_picks]
 
-    """ DATALOADER DEL TRAINING """
-    train_trans=[custom_transforms.RandomHorizontalFlip(100), custom_transforms.RandomRotation(7,seed=seed), 
-                custom_transforms.RandomCrop(80,seed=seed), custom_transforms.ToGPU()]
-    transforms_train = custom_transforms.Compose(train_trans)
-    train_set = ConvolutionalDataset(tr_feat,tr_labl,transforms=transforms_train,tag_transforms=None)
-    train_loader=torchdata.DataLoader(dataset=train_set,batch_size=batch_size,shuffle=True)
+            # Debemos aplicar las transformaciones pertinentes definidas en transforms (albumentations)
+            current_features_transformed = []
+            if transforms!=[]:
+                for indx, (sample) in enumerate(current_features):
+                    for transform in transforms:
+                        sample = apply_img_albumentation(transform, sample)
+                    current_features_transformed.append(sample)
 
-    """ DATALOADER DE TEST """
-    test_trans=[custom_transforms.CentralCrop(80), custom_transforms.ToGPU()]
-    transforms_eval = custom_transforms.Compose(test_trans)
-    test_set = ConvolutionalDataset(te_feat, te_labl,transforms=transforms_eval,tag_transforms=None)
-    test_loader=torchdata.DataLoader(dataset=test_set,batch_size=batch_size,shuffle=False)
-    train_samples = len(tr_feat)
-    test_samples = len(te_feat)
+            # Para evitar problemas con imagenes en blanco y negro (1 canal)
+            if current_features_transformed!=[]: current_features = np.array(current_features_transformed)
+            if len(current_features.shape) == 3: current_features = np.expand_dims(current_features, axis=3)
 
-    return train_samples, train_loader, test_samples, test_loader
+            current_features = torch.from_numpy(current_features)
+            current_targets = utils_training.to_categorical(current_targets, num_classes=num_classes)
+            current_targets = torch.from_numpy(current_targets)
 
-def lfw_gender_test(gray, seed=0, fold_test=0, batch_size=128, norm="None"):
-    '''
-    LOAD LFW DATASET
-    Carga los folds de LFW y y de ellos toma 1 ("fold_test") como test
-    '''
-    if gray: data_path = '/home/maparla/DeepLearning/PytorchDatasets/nplfwdeepfunneled_gray/'
-    else: data_path = '/home/maparla/DeepLearning/PytorchDatasets/nplfwdeepfunneled/'
+            current_features = current_features.permute(0,3,1,2)
 
-    """ Extraemos los datos """
-    te_feat, te_labl = [], []
-
-    if gray: load_gray = "_gray"
-    else: load_gray = ""
-
-    for i in range(0,5):
-        if int(fold_test)==i:
-            te_feat = np.load(data_path+"fold"+str(i)+"_data"+load_gray+".npy")
-            te_labl = np.load(data_path+"fold"+str(i)+"_labels.npy")
-        else: pass
-
-    # Debemos hace el transpose para poner los canales delante
-    te_feat = te_feat.astype('float32').transpose(0,3,1,2)
-    te_labl = te_labl.astype('int64').reshape(-1, 1)
-
-    """ Ordenamos los datos según la semilla, los barajamos (Test) """
-    generator = np.random.RandomState(seed=seed)
-    index = generator.permutation(te_feat.shape[0])
-    te_feat = te_feat[index]
-    te_labl = te_labl[index]
-
-    # Los pasamos a torch los datos
-    te_feat = torch.from_numpy(te_feat).cuda()
-    te_labl = torch.from_numpy(te_labl).cuda()
-    # Normalizamos los datos
-    te_feat = custom_transforms.single_normalize(te_feat, norm)
+            # Normalizamos los datos
+            if norm != "":
+                current_features = single_normalize(current_features, norm)
+            yield current_features, current_targets
 
 
-    """ DATALOADER DE TEST """
-    test_trans=[custom_transforms.CentralCrop(80), custom_transforms.ToGPU()]
-    transforms_eval = custom_transforms.Compose(test_trans)
-    test_set = ConvolutionalDataset(te_feat, te_labl,transforms=transforms_eval,tag_transforms=None)
-    test_loader=torchdata.DataLoader(dataset=test_set,batch_size=batch_size,shuffle=False)
+def normalize(tr_feat, te_feat, norm):
+    if norm=='zscore':
+        mean=torch.ones(1,3,1,1)
+        std=torch.ones(1,3,1,1)
+        mean[0,0,0,0]=torch.mean(tr_feat[:,0,:,:])
+        mean[0,1,0,0]=torch.mean(tr_feat[:,1,:,:])
+        mean[0,2,0,0]=torch.mean(tr_feat[:,2,:,:])
+        std[0,0,0,0]=torch.std(tr_feat[:,0,:,:])
+        std[0,1,0,0]=torch.std(tr_feat[:,1,:,:])
+        std[0,2,0,0]=torch.std(tr_feat[:,2,:,:])
+        tr_feat-=mean
+        tr_feat/=std
+        te_feat-=mean
+        te_feat/=std
 
-    test_samples = len(te_feat)
+    elif norm=='0_1range':
+        max_val=tr_feat.max()
+        min_val=tr_feat.min()
+        tr_feat-=min_val
+        tr_feat/=(max_val-min_val)
 
-    return test_samples, test_loader
+        max_val=te_feat.max()
+        min_val=te_feat.min()
+        te_feat-=min_val
+        te_feat/=(max_val-min_val)
 
-def groups_gender(gray, seed=0, fold_test=0, batch_size=128, norm="None"):
-    '''
-    LOAD GROUPS DATASET
-    Carga los 5 folds de GROUPS y y de ellos toma 1 ("fold_test") como test
-    '''
 
-    if gray: data_path = '/home/maparla/DeepLearning/PytorchDatasets/npgroups_gray/'
-    else: data_path = '/home/maparla/DeepLearning/PytorchDatasets/npgroups/'
+    elif norm=='-1_1range' or norm=='np_range':
+        max_val=tr_feat.max()
+        min_val=tr_feat.min()
+        tr_feat*=2
+        tr_feat-=(max_val-min_val)
+        tr_feat/=(max_val-min_val)
 
-    """ Extraemos los datos """
-    te_feat, tr_feat = [], []
-    te_labl, tr_labl = [], []
+        max_val=te_feat.max()
+        min_val=te_feat.min()
+        te_feat*=2
+        te_feat-=(max_val-min_val)
+        te_feat/=(max_val-min_val)
 
-    if gray: load_gray = "_gray"
-    else: load_gray = ""
+    elif norm=='255':
+        tr_feats/=255
+        te_feats/=255
 
-    for i in range(0,5):
-        if int(fold_test)==i:
-            te_feat = np.load(data_path+"fold"+str(i)+"_data"+load_gray+".npy")
-            te_labl = np.load(data_path+"fold"+str(i)+"_labels.npy")
-        else:
-            tr_feat.append(np.load(data_path+"fold"+str(i)+"_data"+load_gray+".npy"))
-            tr_labl.append(np.load(data_path+"fold"+str(i)+"_labels.npy"))
+    else: assert False, "Invalid Normalization"
 
-    tr_feat = np.concatenate(tr_feat)
-    tr_labl = np.concatenate(tr_labl)
+    return tr_feat, te_feat
 
-    # tr_feat = tr_feat.astype('float32').transpose(0,3,1,2)
-    # Debemos hace el transpose para poner los canales delante
-    tr_feat = tr_feat.astype('float32').transpose(0,3,1,2)
-    tr_labl = tr_labl.astype('int64').reshape(-1, 1)
-    te_feat = te_feat.astype('float32').transpose(0,3,1,2)
-    te_labl = te_labl.astype('int64').reshape(-1, 1)
+def single_normalize(feats, norm):
 
-    """ Ordenamos los datos según la semilla, los barajamos (Train) """
-    generator = np.random.RandomState(seed=seed)
-    index = generator.permutation(tr_feat.shape[0])
-    tr_feat = tr_feat[index]
-    tr_labl = tr_labl[index]
+    if norm=='0_1range':
+        max_val=feats.max()
+        min_val=feats.min()
+        feats-=min_val
+        feats/=(max_val-min_val)
 
-    """ Ordenamos los datos según la semilla, los barajamos (Test) """
-    generator = np.random.RandomState(seed=seed)
-    index = generator.permutation(te_feat.shape[0])
-    te_feat = te_feat[index]
-    te_labl = te_labl[index]
 
-    # Los pasamos a torch los datos
-    tr_feat = torch.from_numpy(tr_feat).cuda()
-    tr_labl = torch.from_numpy(tr_labl).cuda()
-    te_feat = torch.from_numpy(te_feat).cuda()
-    te_labl = torch.from_numpy(te_labl).cuda()
-    # Normalizamos los datos
-    tr_feat, te_feat = custom_transforms.normalize(tr_feat, te_feat, norm)
+    elif norm=='-1_1range' or norm=='np_range':
+        max_val=feats.max()
+        min_val=feats.min()
+        feats*=2
+        feats-=(max_val-min_val)
+        feats/=(max_val-min_val)
 
-    """ DATALOADER DEL TRAINING """
-    train_trans=[custom_transforms.RandomHorizontalFlip(100), custom_transforms.RandomRotation(7,seed=seed), custom_transforms.RandomCrop(80,seed=seed), custom_transforms.ToGPU()]
-    transforms_train = custom_transforms.Compose(train_trans)
-    train_set = ConvolutionalDataset(tr_feat,tr_labl,transforms=transforms_train,tag_transforms=None)
-    train_loader=torchdata.DataLoader(dataset=train_set,batch_size=batch_size,shuffle=True)
+    elif norm=='255':
+        feats/=255
 
-    """ DATALOADER DE TEST """
-    test_trans=[custom_transforms.CentralCrop(80), custom_transforms.ToGPU()]
-    transforms_eval = custom_transforms.Compose(test_trans)
-    test_set = ConvolutionalDataset(te_feat, te_labl,transforms=transforms_eval,tag_transforms=None)
-    test_loader=torchdata.DataLoader(dataset=test_set,batch_size=batch_size,shuffle=False)
+    elif norm==None: pass
+    else: raise NotImplemented
 
-    train_samples = len(tr_feat)
-    test_samples = len(te_feat)
+    return feats
 
-    return train_samples, train_loader, test_samples, test_loader
+
+def apply_img_albumentation(aug, image):
+    image = aug(image=image)['image']
+    return image

@@ -17,7 +17,6 @@ from torchvision import transforms, datasets
 import torch.nn.functional as F
 
 from pytorchlib.pytorch_models import models_interface
-from pytorchlib.pytorch_data import data_interface
 from pytorchlib.pytorch_library import utils_general, utils_training
 
 
@@ -55,7 +54,6 @@ print("\nEntrenando CE Simple con {} - {} utilizando {} - Quick Draw Doodle!)".f
     torch.cuda.manual_seed(seed=seed)
 
     batch_size = 64
-    data_interface.database_selector()
 """
 
 """ ---- MODELOS ---- """
@@ -102,9 +100,9 @@ for epoch in range(1, total_epochs+1):
         if total_data_train >= data_train_per_epoch: break
         else: total_data_train += len(batch_data)
 
-    acc1 = utils_training.evaluate_accuracy_models_generator([model], val_loader, max_data=data_eval_per_epoch, topk=(1,))
+    acc1 = utils_training.evaluate_accuracy_models([model], data_generator=val_loader, max_data=data_eval_per_epoch, topk=(1,))
     curr_loss = total_loss / total_data_train
-    print("Epoch {}: Learning Rate: {:.6f}, Loss: {:.6f}, Accuracy: {:.2f} --- ".format(epoch, utils_training.get_current_lr(model_optimizer), curr_loss, acc1*100) + utils_general.time2human(start_time, time.time()))
+    print("Epoch {}: Learning Rate: {:.6f}, Loss: {:.6f}, Accuracy: {:.2f} --- ".format(epoch, utils_training.get_current_lr(model_optimizer), curr_loss, acc1*100) + utils_general.time_to_human(start_time, time.time()))
 
     results["log-loss"].append(curr_loss)
     results["log-acc"].append(acc1)
@@ -117,7 +115,7 @@ for epoch in range(1, total_epochs+1):
 
 
 """ ---- GUARDADO DE RESULTADOS Y LOGGING ---- """
-results["time"] = utils_general.time2human(start_time, time.time())
+results["time"] = utils_general.time_to_human(start_time, time.time())
 
 pathlib.Path(model_name_path).mkdir(parents=True, exist_ok=True)
 torch.save(best_model_state_dict, model_name_path+"CE_Simple_lrPlateau_checkpoint_state.pt")
@@ -126,4 +124,4 @@ with open(model_name_path+"CE_Simple_lrPlateau_LOG.pkl", 'wb') as f:
 
 utils_general.slack_message("(CE Simple - Quick Draw Doodle) Accuracy modelo " + model_type + " - " + str(model_cfg_txt) +
                             " utilizando " + optimizador +": " + str(np.max(np.array(results["log-acc"])))[0:5] + "% --- " +
-                            utils_general.time2human(start_time, time.time()), slack_channel)
+                            utils_general.time_to_human(start_time, time.time()), slack_channel)

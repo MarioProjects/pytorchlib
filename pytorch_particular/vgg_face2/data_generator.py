@@ -7,7 +7,7 @@ import numpy as np
 import torch
 from torch.utils import data
 
-import pytorchlib.pytorch_data.transforms as custom_transforms
+import pytorchlib.pytorch_data.load_data as load_data
 import pytorchlib.pytorch_library.utils_particular as utils_particular
 import pytorchlib.pytorch_library.utils_training as utils_training
 
@@ -78,17 +78,17 @@ class FoldersDatasetVGGFace2(data.Dataset):
         # Primero debemos redimensionar la imagen para que el lado corto mida IMG_BASE_SIZE pixels
         if img.shape[0] <= img.shape[1]: # Tiene menor o igual el alto
             ancho = int((IMG_BASE_SIZE * img.shape[1]) / img.shape[0])
-            img = custom_transforms.apply_albumentation(albumentations.Resize(IMG_BASE_SIZE, ancho), img)
+            img = load_data.apply_img_albumentation(albumentations.Resize(IMG_BASE_SIZE, ancho), img)
         else:
             alto = int((IMG_BASE_SIZE * img.shape[0]) / img.shape[1])
-            img = custom_transforms.apply_albumentation(albumentations.Resize(alto, IMG_BASE_SIZE), img)
+            img = load_data.apply_img_albumentation(albumentations.Resize(alto, IMG_BASE_SIZE), img)
 
         if self.transforms!=[]:
             for transform in self.transforms:
-                img = custom_transforms.apply_albumentation(transform, img)
+                img = load_data.apply_img_albumentation(transform, img)
 
         img = torch.from_numpy(img.astype(np.float32).transpose(2,0,1))
-        if self.norm!="": img = custom_transforms.single_normalize(img, self.norm)
+        if self.norm!="": img = load_data.single_normalize(img, self.norm)
         return img, self.labels[index]
 
     def __len__(self):

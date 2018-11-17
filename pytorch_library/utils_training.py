@@ -66,14 +66,14 @@ def get_current_lr(optimizer):
         return param_group['lr']
 
 
-def anneal_lr(redes, lr_init, total_epochs, current_epoch, optimizer_type, flag=True):
-    # flag nos indica si realmente queremos hacer el annel sobre las redes
+def anneal_lr(models, lr_init, total_epochs, current_epoch, optimizer_type, flag=True):
+    # flag nos indica si realmente queremos hacer el annel sobre las models
     if not flag: lr_new = lr_init
     else: lr_new = -(lr_init/total_epochs) * current_epoch + lr_init
 
     redes_resultado = []
-    for red in redes:
-        redes_resultado.append(get_optimizer(optimizer_type, red.parameters(), lr=lr_new))
+    for model in models:
+        redes_resultado.append(get_optimizer(optimizer_type, model.parameters(), lr=lr_new))
     if len(redes_resultado) == 1: return lr_new, redes_resultado[0]
     return lr_new, redes_resultado
 
@@ -82,23 +82,6 @@ def defrost_model_params(model):
     # Funcion para descongelar redes!
     for param in model.parameters():
         param.requires_grad = True
-
-
-def loss_fn_kd_kldivloss(outputs, teacher_outputs, labels, temperature, alpha=0.9):
-    """
-    Compute the knowledge-distillation (KD) loss given outputs, labels.
-    "Hyperparameters": temperature and alpha
-    NOTE: the KL Divergence for PyTorch comparing the softmaxs of teacher
-    and student expects the input tensor to be log probabilities! See Issue #2
-    source: https://github.com/peterliht/knowledge-distillation-pytorch/blob/master/model/net.py
-    """
-    alpha = alpha
-    T = temperature
-    KD_loss = nn.KLDivLoss()(F.log_softmax(outputs/T, dim=1),
-                             F.softmax(teacher_outputs/T, dim=1)) * (alpha * T * T) + \
-              F.cross_entropy(outputs, labels) * (1. - alpha)
-
-    return KD_loss
 
 
 def simple_target_creator(samples, value):
@@ -144,193 +127,112 @@ def train_simple_model(model, data, target, loss, optimizer, out_pos=-1, target_
 
     return cost.item()
 
-def train_cumulative_batch_model(model, data, target, loss, optimizer, out_pos=-1, target_one_hot=False, net_type="convolutional", do_backward=False, last_cost=0):
-    """
-      do_backward: Nos sirve para saber si debemos hacer el backward. La funcion esta pensada para que cuando tengamos cierto coste acumulado de una serie
-                   de batch de datos procesados (que no podemos hacer directamente porque no nos entra en memoria), hagamos entonces el backward.
-      last_cost: Coste del batch anterior (al que no le hemos hecho backward y vamos acumulando). Si es 0 es que es el primer batch a acumular
-    """
-    # Losses: https://pytorch.org/docs/stable/nn.html
-    model.train()
-    optimizer.zero_grad()
 
-    if net_type == "fully-connected":
-        model_out = model.forward(Variable(data.float().view(data.shape[0], -1)))
-    elif net_type == "convolutional":
-        model_out = model.forward(Variable(data.float()))
-
-    # Algunos modelos devuelven varias salidas como pueden ser la capa
-    # reshape y los logits, etc... Para conocer la salida a utilizar en el
-    # loss lo que hacemos es tomar la que se indique en le parametro out_pos
-    if type(model_out) is list or type(model_out) is tuple:
-        model_out = model_out[out_pos]
-
-    # La crossentropia no acepta one hot target en Pytorch
-    if target_one_hot: _, target = target.max(dim=1)
-
-    # Calculo el error obtenido
-    # Cuidado con la codificacion one hot! https://discuss.pytorch.org/t/runtimeerror-multi-target-not-supported-newbie/10216/8
-    try: cost = loss(model_out, target)
-    except:
-        global CROSS_ENTROPY_ONE_HOT_WARNING
-        if not CROSS_ENTROPY_ONE_HOT_WARNING:
-            print("\nWARNING-INFO: Crossentropy not works with one hot target encoding!\n")
-            CROSS_ENTROPY_ONE_HOT_WARNING = True
-        cost = loss(model_out, target[:,0])
-
-    #if last_cost!=0: cost += last_cost
-
-    if do_backward:
-        # Actualizamos pesos y gradientes
-        optimizer.step()
-        return cost.item()
-    else: 
-        cost.backward()
-        #return cost
-
-
-# INPUTS: output have shape of [batch_size, category_count]
-#    and target in the shape of [batch_size] * there is only one true class for each sample
-# topk is tuple of classes to be included in the precision
-# topk have to a tuple so if you are giving one number, do not forget the comma
-def topk_accuracy(output, target, topk=(1,)):
-    """Computes the accuracy over the k top predictions for the specified values of k"""
-    #we do not need gradient calculation for those
-    with torch.no_grad():
-    #we will use biggest k, and calculate all precisions from 0 to k
-        maxk = max(topk)
-        batch_size = target.size(0)
-        #topk gives biggest maxk values on dimth dimension from output
-        #output was [batch_size, category_count], dim=1 so we will select biggest category scores for each batch
-        # input=maxk, so we will select maxk number of classes
-        #so result will be [batch_size,maxk]
-        #topk returns a tuple (values, indexes) of results
-        # we only need indexes(pred)
-        _, pred = output.topk(maxk, dim=1, largest=True, sorted=True)
-        # then we transpose pred to be in shape of [maxk, batch_size]
-        pred = pred.t()
-        #we flatten target and then expand target to be like pred
-        # target [batch_size] becomes [1,batch_size]
-        # target [1,batch_size] expands to be [maxk, batch_size] by repeating same correct class answer maxk times.
-        # when you compare pred (indexes) with expanded target, you get 'correct' matrix in the shape of  [maxk, batch_size] filled with 1 and 0 for correct and wrong class assignments
-        correct = pred.eq(target.view(1, -1).expand_as(pred))
-        """ correct=([[0, 0, 1,  ..., 0, 0, 0],
-        [1, 0, 0,  ..., 0, 0, 0],
-        [0, 0, 0,  ..., 1, 0, 0],
-        [0, 0, 0,  ..., 0, 0, 0],
-        [0, 1, 0,  ..., 0, 0, 0]], device='cuda:0', dtype=torch.uint8) """
-        res = []
-        # then we look for each k summing 1s in the correct matrix for first k element.
-        for k in topk:
-            res.append(correct[:k].view(-1).float().sum(0, keepdim=True))
-        return res
-
-def evaluate_accuracy_models_generator(models, data, max_data=0, topk=(1,), target_one_hot=False, net_type="convolutional"):
+def evaluate_accuracy_models(models, data_generator="", X_data="", y_data="", batch_size=100, max_data=0, topk=(1,), target_one_hot=False, net_type="convolutional", data_type="generator"):
     """Computes the accuracy (sobre 1) over the k top predictions for the specified values of k"""
     # Si paso un modelo y topk(1,5) -> acc1, acc5,
     # Si paso dos modelo y topk(1,5) -> m1_acc1, m1_acc5, m2_acc1, m2_acc5
-    with torch.no_grad():
+    if data_type == "generator":
+        with torch.no_grad():
 
-        if type(topk)==int:
-            maxk = topk
-            topk = (topk,)
-        else: maxk = max(topk)
+            if type(topk)==int:
+                maxk = topk
+                topk = (topk,)
+            else: maxk = max(topk)
 
-        correct_models, total_samples = [0]*len(models), 0
-        for batch_idx, (batch, target) in enumerate(data):
+            correct_models, total_samples = [0]*len(models), 0
+            for batch_idx, (batch, target) in enumerate(data):
 
-            if target_one_hot: _, target = target.max(dim=1)
-            batch_size = target.size(0)
+                if target_one_hot: _, target = target.max(dim=1)
+                batch_size = target.size(0)
 
-            # calculo predicciones para el error de test de todos los modelos
-            # Tengo que hacer el forward para cada modelo y ver que clases acierta
-            for model_indx, model in enumerate(models):
-                if net_type == "fully-connected":
-                    model_out = model.forward(Variable(batch.float().view(batch.shape[0], -1).cuda()))
-                elif net_type == "convolutional":
-                    model_out = model.forward(Variable(batch.float().cuda()))
-                else: assert False, "Please define your model type!"
+                # calculo predicciones para el error de test de todos los modelos
+                # Tengo que hacer el forward para cada modelo y ver que clases acierta
+                for model_indx, model in enumerate(models):
+                    if net_type == "fully-connected":
+                        model_out = model.forward(Variable(batch.float().view(batch.shape[0], -1).cuda()))
+                    elif net_type == "convolutional":
+                        model_out = model.forward(Variable(batch.float().cuda()))
+                    else: assert False, "Please define your model type!"
 
-                # Algunos modelos devuelven varias salidas como pueden ser la capa
-                # reshape y los logits, etc... Por lo que se establece el standar
-                # de que la ultima salida sean los logits del modelo para hacer la clasificacion
-                if type(model_out) is list or type(model_out) is tuple:
-                    model_out = model_out[-1]
+                    # Algunos modelos devuelven varias salidas como pueden ser la capa
+                    # reshape y los logits, etc... Por lo que se establece el standar
+                    # de que la ultima salida sean los logits del modelo para hacer la clasificacion
+                    if type(model_out) is list or type(model_out) is tuple:
+                        model_out = model_out[-1]
 
-                # Transformamos los logits a salida con el indice con el mayor valor
-                #  de las tuplas que continen los logits
-                res_topk = np.array(topk_accuracy(model_out, target.cuda(), topk=topk))
+                    # Transformamos los logits a salida con el indice con el mayor valor
+                    #  de las tuplas que continen los logits
+                    res_topk = np.array(topk_accuracy(model_out, target.cuda(), topk=topk))
 
-                correct_models[model_indx] += res_topk
+                    correct_models[model_indx] += res_topk
 
-            total_samples += batch_size
-            if max_data != 0 and total_samples >= max_data: break
+                total_samples += batch_size
+                if max_data != 0 and total_samples >= max_data: break
 
-    accuracies = []
-    for result_model in correct_models:
-        for topkres in result_model:
-            accuracies.append((topkres*1.0)/total_samples)
+        accuracies = []
+        for result_model in correct_models:
+            for topkres in result_model:
+                accuracies.append((topkres*1.0)/total_samples)
 
-    #accuracies = list(((np.array(correct_models) * 1.0) / total_samples))
-    if len(accuracies) == 1: return accuracies[0]
-    return accuracies
+        #accuracies = list(((np.array(correct_models) * 1.0) / total_samples))
+        if len(accuracies) == 1: return accuracies[0]
+        return accuracies
 
-def evaluate_accuracy_models_data(models, X_data, y_data, batch_size=100, max_data=0, topk=(1,), net_type="convolutional"):
-    """Computes the accuracy over the k top predictions for the specified values of k"""
-    # Si paso un modelo y topk(1,5) -> acc1, acc5,
-    # Si paso dos modelo y topk(1,5) -> m1_acc1, m1_acc5, m2_acc1, m2_acc5
-    with torch.no_grad():
+    elif data_type == "data":
+        with torch.no_grad():
 
-        if type(topk)==int:
-            maxk = topk
-            topk = (topk,)
-        else: maxk = max(topk)
+            if type(topk)==int:
+                maxk = topk
+                topk = (topk,)
+            else: maxk = max(topk)
 
-        correct_models, total_samples = [0]*len(models), 0
+            correct_models, total_samples = [0]*len(models), 0
 
-        total_samples = 0
-        while True:
+            total_samples = 0
+            while True:
 
-            # Debemos comprobar que no nos pasamos con el batch_size
-            if total_samples + batch_size >= len(X_data): batch_size = (len(X_data)) - total_samples
+                # Debemos comprobar que no nos pasamos con el batch_size
+                if total_samples + batch_size >= len(X_data): batch_size = (len(X_data)) - total_samples
 
-            batch = X_data[total_samples:total_samples+batch_size]
-            target = y_data[total_samples:total_samples+batch_size]
+                batch = X_data[total_samples:total_samples+batch_size]
+                target = y_data[total_samples:total_samples+batch_size]
 
-            # calculo predicciones para el error de test de todos los modelos
-            # Tengo que hacer el forward para cada modelo y ver que clases acierta
-            for model_indx, model in enumerate(models):
-                if net_type == "fully-connected":
-                    model_out = model.forward(Variable(batch.float().view(batch.shape[0], -1).cuda()))
-                elif net_type == "convolutional":
-                    model_out = model.forward(Variable(batch.float().cuda()))
-                else: assert False, "Please define your model type!"
+                # calculo predicciones para el error de test de todos los modelos
+                # Tengo que hacer el forward para cada modelo y ver que clases acierta
+                for model_indx, model in enumerate(models):
+                    if net_type == "fully-connected":
+                        model_out = model.forward(Variable(batch.float().view(batch.shape[0], -1).cuda()))
+                    elif net_type == "convolutional":
+                        model_out = model.forward(Variable(batch.float().cuda()))
+                    else: assert False, "Please define your model type!"
 
-                # Algunos modelos devuelven varias salidas como pueden ser la capa
-                # reshape y los logits, etc... Por lo que se establece el standar
-                # de que la ultima salida sean los logits del modelo para hacer la clasificacion
-                if type(model_out) is list or type(model_out) is tuple:
-                    model_out = model_out[-1]
+                    # Algunos modelos devuelven varias salidas como pueden ser la capa
+                    # reshape y los logits, etc... Por lo que se establece el standar
+                    # de que la ultima salida sean los logits del modelo para hacer la clasificacion
+                    if type(model_out) is list or type(model_out) is tuple:
+                        model_out = model_out[-1]
 
-                # Transformamos los logits a salida con el indice con el mayor valor
-                #  de las tuplas que continen los logits
-                res_topk = np.array(topk_accuracy(model_out, target.cuda(), topk=topk))
-                correct_models[model_indx] += res_topk
+                    # Transformamos los logits a salida con el indice con el mayor valor
+                    #  de las tuplas que continen los logits
+                    res_topk = np.array(topk_accuracy(model_out, target.cuda(), topk=topk))
+                    correct_models[model_indx] += res_topk
 
 
-            total_samples+=batch_size
-            if max_data != 0 and total_samples >= max_data or total_samples == len(X_data): break
+                total_samples+=batch_size
+                if max_data != 0 and total_samples >= max_data or total_samples == len(X_data): break
 
-    accuracies = []
-    for result_model in correct_models:
-        for topkres in result_model:
-            accuracies.append((topkres*1.0)/total_samples)
+        accuracies = []
+        for result_model in correct_models:
+            for topkres in result_model:
+                accuracies.append((topkres*1.0)/total_samples)
 
-    #accuracies = list(((np.array(correct_models) * 1.0) / total_samples))
-    if len(accuracies) == 1: return accuracies[0]
-    return accuracies
+        #accuracies = list(((np.array(correct_models) * 1.0) / total_samples))
+        if len(accuracies) == 1: return accuracies[0]
+        return accuracies
 
-def evaluate_accuracy_models_predictions(model_out, y_data, batch_size=100, max_data=0, topk=(1,), net_type="convolutional"):
+
+def evaluate_accuracy_model_predictions(model_out, y_data, batch_size=100, max_data=0, topk=(1,)):
     """Computes the accuracy over the k top predictions for the specified values of k"""
     # Si paso un modelo y topk(1,5) -> acc1, acc5,
     # Solo permite pasar una salida models_out!
@@ -405,6 +307,47 @@ def predictions_models_data(models, X_data, batch_size=100, net_type="convolutio
     if len(outs_models) == 1: return outs_models[0]
     return outs_models
 
+
+# INPUTS: output have shape of [batch_size, category_count]
+#    and target in the shape of [batch_size] * there is only one true class for each sample
+# topk is tuple of classes to be included in the precision
+# topk have to a tuple so if you are giving one number, do not forget the comma
+def topk_accuracy(output, target, topk=(1,)):
+    """Computes the accuracy over the k top predictions for the specified values of k"""
+    #we do not need gradient calculation for those
+    with torch.no_grad():
+    #we will use biggest k, and calculate all precisions from 0 to k
+        maxk = max(topk)
+        batch_size = target.size(0)
+        #topk gives biggest maxk values on dimth dimension from output
+        #output was [batch_size, category_count], dim=1 so we will select biggest category scores for each batch
+        # input=maxk, so we will select maxk number of classes
+        #so result will be [batch_size,maxk]
+        #topk returns a tuple (values, indexes) of results
+        # we only need indexes(pred)
+        _, pred = output.topk(maxk, dim=1, largest=True, sorted=True)
+        # then we transpose pred to be in shape of [maxk, batch_size]
+        pred = pred.t()
+        #we flatten target and then expand target to be like pred
+        # target [batch_size] becomes [1,batch_size]
+        # target [1,batch_size] expands to be [maxk, batch_size] by repeating same correct class answer maxk times.
+        # when you compare pred (indexes) with expanded target, you get 'correct' matrix in the shape of  [maxk, batch_size] filled with 1 and 0 for correct and wrong class assignments
+        correct = pred.eq(target.view(1, -1).expand_as(pred))
+        """ correct=([[0, 0, 1,  ..., 0, 0, 0],
+        [1, 0, 0,  ..., 0, 0, 0],
+        [0, 0, 0,  ..., 1, 0, 0],
+        [0, 0, 0,  ..., 0, 0, 0],
+        [0, 1, 0,  ..., 0, 0, 0]], device='cuda:0', dtype=torch.uint8) """
+        res = []
+        # then we look for each k summing 1s in the correct matrix for first k element.
+        for k in topk:
+            res.append(correct[:k].view(-1).float().sum(0, keepdim=True))
+        return res
+
+##########################################################################################################
+##########################################################################################################
+##########################################################################################################
+
 def train_discriminator(discriminator_net, discriminator_optimizer, real_data, fake_data, loss):
     num_samples = real_data.size(0) # Para conocer el numero de muestras
 
@@ -462,3 +405,19 @@ def train_generator(discriminator_net, generator_optimizer, fake_data, loss):
 
     # Return error
     return error.item()
+
+def loss_fn_kd_kldivloss(outputs, teacher_outputs, labels, temperature, alpha=0.9):
+    """
+    Compute the knowledge-distillation (KD) loss given outputs, labels.
+    "Hyperparameters": temperature and alpha
+    NOTE: the KL Divergence for PyTorch comparing the softmaxs of teacher
+    and student expects the input tensor to be log probabilities! See Issue #2
+    source: https://github.com/peterliht/knowledge-distillation-pytorch/blob/master/model/net.py
+    """
+    alpha = alpha
+    T = temperature
+    KD_loss = nn.KLDivLoss()(F.log_softmax(outputs/T, dim=1),
+                             F.softmax(teacher_outputs/T, dim=1)) * (alpha * T * T) + \
+              F.cross_entropy(outputs, labels) * (1. - alpha)
+
+    return KD_loss
