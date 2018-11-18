@@ -128,108 +128,110 @@ def train_simple_model(model, data, target, loss, optimizer, out_pos=-1, target_
     return cost.item()
 
 
-def evaluate_accuracy_models(models, data_generator="", X_data="", y_data="", batch_size=100, max_data=0, topk=(1,), target_one_hot=False, net_type="convolutional", data_type="generator"):
+def evaluate_accuracy_models_generator(models, data, max_data=0, topk=(1,), target_one_hot=False, net_type="convolutional"):
     """Computes the accuracy (sobre 1) over the k top predictions for the specified values of k"""
     # Si paso un modelo y topk(1,5) -> acc1, acc5,
     # Si paso dos modelo y topk(1,5) -> m1_acc1, m1_acc5, m2_acc1, m2_acc5
-    if data_type == "generator":
-        with torch.no_grad():
+    with torch.no_grad():
 
-            if type(topk)==int:
-                maxk = topk
-                topk = (topk,)
-            else: maxk = max(topk)
+        if type(topk)==int:
+            maxk = topk
+            topk = (topk,)
+        else: maxk = max(topk)
 
-            correct_models, total_samples = [0]*len(models), 0
-            for batch_idx, (batch, target) in enumerate(data):
+        correct_models, total_samples = [0]*len(models), 0
+        for batch_idx, (batch, target) in enumerate(data):
 
-                if target_one_hot: _, target = target.max(dim=1)
-                batch_size = target.size(0)
+            if target_one_hot: _, target = target.max(dim=1)
+            batch_size = target.size(0)
 
-                # calculo predicciones para el error de test de todos los modelos
-                # Tengo que hacer el forward para cada modelo y ver que clases acierta
-                for model_indx, model in enumerate(models):
-                    if net_type == "fully-connected":
-                        model_out = model.forward(Variable(batch.float().view(batch.shape[0], -1).cuda()))
-                    elif net_type == "convolutional":
-                        model_out = model.forward(Variable(batch.float().cuda()))
-                    else: assert False, "Please define your model type!"
+            # calculo predicciones para el error de test de todos los modelos
+            # Tengo que hacer el forward para cada modelo y ver que clases acierta
+            for model_indx, model in enumerate(models):
+                if net_type == "fully-connected":
+                    model_out = model.forward(Variable(batch.float().view(batch.shape[0], -1).cuda()))
+                elif net_type == "convolutional":
+                    model_out = model.forward(Variable(batch.float().cuda()))
+                else: assert False, "Please define your model type!"
 
-                    # Algunos modelos devuelven varias salidas como pueden ser la capa
-                    # reshape y los logits, etc... Por lo que se establece el standar
-                    # de que la ultima salida sean los logits del modelo para hacer la clasificacion
-                    if type(model_out) is list or type(model_out) is tuple:
-                        model_out = model_out[-1]
+                # Algunos modelos devuelven varias salidas como pueden ser la capa
+                # reshape y los logits, etc... Por lo que se establece el standar
+                # de que la ultima salida sean los logits del modelo para hacer la clasificacion
+                if type(model_out) is list or type(model_out) is tuple:
+                    model_out = model_out[-1]
 
-                    # Transformamos los logits a salida con el indice con el mayor valor
-                    #  de las tuplas que continen los logits
-                    res_topk = np.array(topk_accuracy(model_out, target.cuda(), topk=topk))
+                # Transformamos los logits a salida con el indice con el mayor valor
+                #  de las tuplas que continen los logits
+                res_topk = np.array(topk_accuracy(model_out, target.cuda(), topk=topk))
 
-                    correct_models[model_indx] += res_topk
+                correct_models[model_indx] += res_topk
 
-                total_samples += batch_size
-                if max_data != 0 and total_samples >= max_data: break
+            total_samples += batch_size
+            if max_data != 0 and total_samples >= max_data: break
 
-        accuracies = []
-        for result_model in correct_models:
-            for topkres in result_model:
-                accuracies.append((topkres*1.0)/total_samples)
+    accuracies = []
+    for result_model in correct_models:
+        for topkres in result_model:
+            accuracies.append((topkres*1.0)/total_samples)
 
-        #accuracies = list(((np.array(correct_models) * 1.0) / total_samples))
-        if len(accuracies) == 1: return accuracies[0]
-        return accuracies
+    #accuracies = list(((np.array(correct_models) * 1.0) / total_samples))
+    if len(accuracies) == 1: return accuracies[0]
+    return accuracies
 
-    elif data_type == "data":
-        with torch.no_grad():
+def evaluate_accuracy_models_data(models, X_data, y_data, batch_size=100, max_data=0, topk=(1,), net_type="convolutional"):
+    """Computes the accuracy over the k top predictions for the specified values of k"""
+    # Si paso un modelo y topk(1,5) -> acc1, acc5,
+    # Si paso dos modelo y topk(1,5) -> m1_acc1, m1_acc5, m2_acc1, m2_acc5
+    with torch.no_grad():
 
-            if type(topk)==int:
-                maxk = topk
-                topk = (topk,)
-            else: maxk = max(topk)
+        if type(topk)==int:
+            maxk = topk
+            topk = (topk,)
+        else: maxk = max(topk)
 
-            correct_models, total_samples = [0]*len(models), 0
+        correct_models, total_samples = [0]*len(models), 0
 
-            total_samples = 0
-            while True:
+        total_samples = 0
+        while True:
 
-                # Debemos comprobar que no nos pasamos con el batch_size
-                if total_samples + batch_size >= len(X_data): batch_size = (len(X_data)) - total_samples
+            # Debemos comprobar que no nos pasamos con el batch_size
+            if total_samples + batch_size >= len(X_data): batch_size = (len(X_data)) - total_samples
 
-                batch = X_data[total_samples:total_samples+batch_size]
-                target = y_data[total_samples:total_samples+batch_size]
+            batch = X_data[total_samples:total_samples+batch_size]
+            target = y_data[total_samples:total_samples+batch_size]
 
-                # calculo predicciones para el error de test de todos los modelos
-                # Tengo que hacer el forward para cada modelo y ver que clases acierta
-                for model_indx, model in enumerate(models):
-                    if net_type == "fully-connected":
-                        model_out = model.forward(Variable(batch.float().view(batch.shape[0], -1).cuda()))
-                    elif net_type == "convolutional":
-                        model_out = model.forward(Variable(batch.float().cuda()))
-                    else: assert False, "Please define your model type!"
+            # calculo predicciones para el error de test de todos los modelos
+            # Tengo que hacer el forward para cada modelo y ver que clases acierta
+            for model_indx, model in enumerate(models):
+                if net_type == "fully-connected":
+                    model_out = model.forward(Variable(batch.float().view(batch.shape[0], -1).cuda()))
+                elif net_type == "convolutional":
+                    model_out = model.forward(Variable(batch.float().cuda()))
+                else: assert False, "Please define your model type!"
 
-                    # Algunos modelos devuelven varias salidas como pueden ser la capa
-                    # reshape y los logits, etc... Por lo que se establece el standar
-                    # de que la ultima salida sean los logits del modelo para hacer la clasificacion
-                    if type(model_out) is list or type(model_out) is tuple:
-                        model_out = model_out[-1]
+                # Algunos modelos devuelven varias salidas como pueden ser la capa
+                # reshape y los logits, etc... Por lo que se establece el standar
+                # de que la ultima salida sean los logits del modelo para hacer la clasificacion
+                if type(model_out) is list or type(model_out) is tuple:
+                    model_out = model_out[-1]
 
-                    # Transformamos los logits a salida con el indice con el mayor valor
-                    #  de las tuplas que continen los logits
-                    res_topk = np.array(topk_accuracy(model_out, target.cuda(), topk=topk))
-                    correct_models[model_indx] += res_topk
+                # Transformamos los logits a salida con el indice con el mayor valor
+                #  de las tuplas que continen los logits
+                res_topk = np.array(topk_accuracy(model_out, target.cuda(), topk=topk))
+                correct_models[model_indx] += res_topk
 
 
-                total_samples+=batch_size
-                if max_data != 0 and total_samples >= max_data or total_samples == len(X_data): break
+            total_samples+=batch_size
+            if max_data != 0 and total_samples >= max_data or total_samples == len(X_data): break
 
-        accuracies = []
-        for result_model in correct_models:
-            for topkres in result_model:
-                accuracies.append((topkres*1.0)/total_samples)
+    accuracies = []
+    for result_model in correct_models:
+        for topkres in result_model:
+            accuracies.append((topkres*1.0)/total_samples)
 
-        #accuracies = list(((np.array(correct_models) * 1.0) / total_samples))
-        if len(accuracies) == 1: return accuracies[0]
-        return accuracies
+    #accuracies = list(((np.array(correct_models) * 1.0) / total_samples))
+    if len(accuracies) == 1: return accuracies[0]
+    return accuracies
 
 
 def evaluate_accuracy_model_predictions(model_out, y_data, batch_size=100, max_data=0, topk=(1,)):

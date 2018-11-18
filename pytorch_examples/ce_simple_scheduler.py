@@ -100,7 +100,7 @@ for epoch in range(1, total_epochs+1):
         if total_data_train >= data_train_per_epoch: break
         else: total_data_train += len(batch_data)
 
-    acc1 = utils_training.evaluate_accuracy_models([model], data_generator=val_loader, max_data=data_eval_per_epoch, topk=(1,))
+    acc1 = utils_training.evaluate_accuracy_models_generator([model], val_loader, max_data=data_eval_per_epoch, topk=(1,))
     curr_loss = total_loss / total_data_train
     print("Epoch {}: Learning Rate: {:.6f}, Loss: {:.6f}, Accuracy: {:.2f} --- ".format(epoch, utils_training.get_current_lr(model_optimizer), curr_loss, acc1*100) + utils_general.time_to_human(start_time, time.time()))
 
