@@ -121,7 +121,7 @@ def select_model(model_name, model_config=[], flat_size=0, in_features=0, out_fe
     else: assert False, "Model '" + str(model_name) + "' not found!"
 
     if data_parallel: return torch.nn.DataParallel(my_model, device_ids=range(torch.cuda.device_count()))
-    return my_model
+    return my_model.cuda()
 
 
 def load_model(model_name, model_config=[], states_path="", model_path="", gray=0, dropout=0.0, ruido=0.0, growth_rate=0, in_features=0, flat_size=0, out_features=0, out_type='relu', block_type=None, last_pool_size=0):

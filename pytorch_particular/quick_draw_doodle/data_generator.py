@@ -28,7 +28,7 @@ def draw_cv2(raw_strokes, size=256, lw=6, time_color=True, color=False):
             return cv2.resize(img, (size, size))
         else:
             return img
-    else:        
+    else:
         img = np.zeros((BASE_SIZE, BASE_SIZE), np.uint8)
         for t, stroke in enumerate(raw_strokes):
             for i in range(len(stroke[0]) - 1):
@@ -63,7 +63,8 @@ def image_generator_doodle(size, batch_size, ks, data_amount, transforms=[], nor
                         for transform in transforms:
                             sample = load_data.apply_img_albumentation(transform, sample)
                         sample = np.array(sample)
-                        xt.append(sample.reshape(sample.shape[0], sample.shape[1], 1))
+                        if color: xt.append(sample.reshape(sample.shape[0], sample.shape[1], 3))
+                        else: xt.append(sample.reshape(sample.shape[0], sample.shape[1], 1))
                 if xt!=[]: x = np.array(xt)
                 x = torch.from_numpy(x)
                 x = x.permute(0,3,1,2) # Necesitamos los canales en la segunda posicion
@@ -87,8 +88,8 @@ def df_to_image_array_doodle(df, size, lw=6, time_color=True, transforms=[], nor
         x = np.zeros((len(df), size, size, 1))
         for i, raw_strokes in enumerate(df.drawing.values):
             x[i, :, :, 0] = draw_cv2(raw_strokes, size=size, lw=lw, time_color=time_color, color=color)
-    
-    
+
+
     x = x.astype(np.float32)
     xt = []
     if transforms!=[]:
@@ -97,7 +98,8 @@ def df_to_image_array_doodle(df, size, lw=6, time_color=True, transforms=[], nor
                 sample = load_data.apply_img_albumentation(transform, sample)
             #xt.append(sample)
             sample = np.array(sample)
-            xt.append(sample.reshape(sample.shape[0], sample.shape[1], 1))
+            if color: xt.append(sample.reshape(sample.shape[0], sample.shape[1], 3))
+            else: xt.append(sample.reshape(sample.shape[0], sample.shape[1], 1))
     if xt!=[]: x = np.array(xt)
     x = torch.from_numpy(x)
     x = x.permute(0,3,1,2) # Necesitamos los canales en la segunda posicion

@@ -27,8 +27,9 @@
 
 |   Model Type  |     Configuration    | Images Type |     Data Augmentation    |     Data Usage     |    GPU    |
 |:-------------:|:--------------------:|:-----------:|:------------------------:|:------------------:|:---------:|
-|     ResNet    |   Basic18_Standard   |    64x64    |           No             | All - 200000 epoch |     P12   | >>> Voy a hacer retrain steps lr 0.35 batch 512 ....
-|     SENet     |  PreAct34_Standard   |    64x64    |           No             | All - 200000 epoch |     P6    | >>> Voy a hacer retrain steps lr 0.35 batch 128 ....
+|     ResNet    |   Basic34_Standard   |    64x64    |           No             | All - 200000 epoch |     P6    | >>> Voy a hacer retrain steps lr 0.35
+|     ResNet    |      IMAGENET34      |  224X224    |           No             | All - 200000 epoch |    P10    | >>> Voy a hacer retrain steps 0.1
+|     ResNet    | Basic34_Small_Color  |    64x64    |           No             | All - 200000 epoch |     P9    | >>> Voy a hacer retrain steps lr 0.35
 
 
 ---- PENDING ----
