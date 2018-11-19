@@ -12,8 +12,12 @@
 |   ResNet*   |     Basic34_Small    |    64x64    |           HFlip          | 50k - 145000 epoch |    76.68   |    90.85   |    -----    | >>> steps lr 0.1
 |   ResNet*   |     Basic34_Small    |    64x64    |            No            | 50k - 200000 epoch |    79.37   |    92.00   |    0.894    | >>> RETRAIN steps lr 0.15...
 -----------------------------------> (Basic34_Small) Al aplicar Test Time Augmentations (4 variantes + Original) paso de 0.894 a  0.888    | >>> TTA (Empeora)
+|   ResNet    | Basic34_Small_Color  |    64x64    |            No            | All - 200000 epoch |    78.11   |    91.80   |    0.891    | >>> Implicit retrain steps
+|   ResNet    |    Basic34_Standard  |    64x64    |            No            | All - 200000 epoch |    78.71   |    91.85   |    0.888    | >>> Implicit retrain steps
+|   ResNet    |      IMAGENET34      |   224x224   |            No            | All - 200000 epoch |    78.64   |    92.08   |             | >>> Retrain Imagenet weights
 |   ResNet*   |   Basic18_Standard   |    64x64    | HFlip & ShiftScaleRotate | 50k - 145000 epoch |    76.45   |    90.85   |    0.894    |
-|   ResNet    |   Basic18_Standard   |    64x64    |            No            | All - 200000 epoch |    79.02   |    92.17   |    0.897    | >>> Implicit Retrain steps
+|   ResNet    |   Basic18_Standard   |    64x64    |            No            | All - 200000 epoch |    79.02   |    92.17   |    0.898    | >>> Implicit Retrain steps
+-----------------------------------> (Basic18_Standard) Al aplicar Test Time Augmentations (3 HFlips + Original) paso de 0.894 a  0.897    | >>> TTA (Empeora)
 ------------------> (Basic18_Standard) Al utilizar un batch mayor (512) el accuracy se ve reducido |    78.57   |    91.57   |    0.895    |
 |   SENet*    |    PreAct34_Small    |    64x64    | HFlip & ShiftScaleRotate | 50k - 145000 epoch |    77.60   |    90.65   |             |
 | MobileNetv2*|        Standard      |    64x64    |           HFlip          | 50k - 145000 epoch |    76.65   |    90.57   |             | >>> scheduler
@@ -27,18 +31,11 @@
 
 |   Model Type  |     Configuration    | Images Type |     Data Augmentation    |     Data Usage     |    GPU    |
 |:-------------:|:--------------------:|:-----------:|:------------------------:|:------------------:|:---------:|
-|     ResNet    |   Basic34_Standard   |    64x64    |           No             | All - 200000 epoch |     P6    | >>> Voy a hacer retrain steps lr 0.35
-|     ResNet    |      IMAGENET34      |  224X224    |           No             | All - 200000 epoch |    P10    | >>> Voy a hacer retrain steps 0.1
-|     ResNet    | Basic34_Small_Color  |    64x64    |           No             | All - 200000 epoch |     P9    | >>> Voy a hacer retrain steps lr 0.35
+|               |                      |             |                          | All - 200000 epoch |           | >>> 
 
 
 ---- PENDING ----
 
-  --> Probar TTA solo con HFLip y probando a ponderar: https://www.kaggle.com/c/quickdraw-doodle-recognition/discussion/71353
-  --> Probar a incrementar el batch size haciendo que el coste se vaya 
-      aumgentando en una variable y posteriormente variable.backward()
-  --> Utilizar imagenes a color! (Mirar en Ideas)
-  --> Reentrenar modelo de Imagenet
 
 ---- IDEAS Y CONCLUSIONES ----
 
