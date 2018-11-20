@@ -17,7 +17,6 @@ from torchvision import transforms, datasets
 import torch.nn.functional as F
 
 from pytorchlib.pytorch_models import models_interface
-from pytorchlib.pytorch_data import data_interface
 from pytorchlib.pytorch_library import utils_general, utils_training
 
 
@@ -55,7 +54,7 @@ print("\nEntrenando CE Simple con {} - {} utilizando {} - Quick Draw Doodle!)".f
     torch.cuda.manual_seed(seed=seed)
 
     batch_size = 64
-    data_interface.database_selector()
+
 """
 
 """ ---- MODELOS ---- """
@@ -65,9 +64,9 @@ model = models_interface.select_model(model_name, model_config=model_config, dro
 """ ---- CONSTANTES DE NUESTRO PROGRAMA ---- """
 
 # Las ultimas 50 las haremos con annealing lineal
-epochs_steps = [50, 100, 100, 50]
-lr_steps = [0.1, 0.01, 0.001, 0.001]
-apply_lr_anneal_lineal = [False, False, False, True]
+epochs_steps = [50, 100, 100, 50, 15, 12]
+lr_steps = [0.1, 0.01, 0.001, 0.001, 0.1, 0.01]
+apply_lr_anneal_lineal = [False, False, False, True, False, True]
 
 # Vamos a utilizar la metrica del error cuadratico medio
 loss_ce = nn.CrossEntropyLoss()
@@ -106,7 +105,7 @@ for indx,(epochs_now, lr_now) in enumerate(zip(epochs_steps, lr_steps)):
 
         acc1 = utils_training.evaluate_accuracy_models_generator([model], val_loader, max_data=data_eval_per_epoch, topk=(1,))
         curr_loss = total_loss / total_data_train
-        print("Epoch {}: Learning Rate: {:.6f}, Loss: {:.6f}, Accuracy: {:.2f} --- ".format(total_epochs, lr_new, curr_loss, acc1*100) + utils_general.time2human(start_time, time.time()))
+        print("Epoch {}: Learning Rate: {:.6f}, Loss: {:.6f}, Accuracy: {:.2f} --- ".format(total_epochs, lr_new, curr_loss, acc1*100) + utils_general.time_to_human(start_time, time.time()))
 
         results["log-loss"].append(curr_loss)
         results["log-acc"].append(acc1)
@@ -121,7 +120,7 @@ for indx,(epochs_now, lr_now) in enumerate(zip(epochs_steps, lr_steps)):
 
 
 """ ---- GUARDADO DE RESULTADOS Y LOGGING ---- """
-results["time"] = utils_general.time2human(start_time, time.time())
+results["time"] = utils_general.time_to_human(start_time, time.time())
 
 pathlib.Path(model_name_path).mkdir(parents=True, exist_ok=True)
 torch.save(best_model_state_dict, model_name_path+"CE_Simple_checkpoint_state.pt")
@@ -130,4 +129,4 @@ with open(model_name_path+"CE_Simple_LOG.pkl", 'wb') as f:
 
 utils_general.slack_message("(CE Simple - Quick Draw Doodle) Accuracy modelo " + model_type + " - " + str(model_cfg_txt) +
                             " utilizando " + optimizador +": " + str(np.max(np.array(results["log-acc"])))[0:5] + "% --- " +
-                            utils_general.time2human(start_time, time.time()), slack_channel)
+                            utils_general.time_to_human(start_time, time.time()), slack_channel)

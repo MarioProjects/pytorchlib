@@ -4,7 +4,9 @@
  --------------------------
 
      -> Comentar todo estilo PEP8 (mirar proyecto Felix?)
-
+     -> Hacer los examples como estan expuestos en el README
+     -> Ejemplo de GAN en examples
+     -> Ejemplo basico Unet y segmentación (mirar Kaggle y 1º solucion)
 
  ---------------------------
  #### IMPORTANCIA MEDIA ####
