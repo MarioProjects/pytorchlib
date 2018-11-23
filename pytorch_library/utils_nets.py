@@ -2,8 +2,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
 #base class for all the models to allow for dynamic resize of tensor for noises
 class GaussianNoise(nn.Module):
     """Gaussian noise regularizer.
@@ -23,12 +21,12 @@ class GaussianNoise(nn.Module):
         super().__init__()
         self.std = std
         self.is_relative_detach = is_relative_detach
-        self.noise = torch.tensor(0).to(DEVICE)
+        self.noise = torch.tensor(0)
 
     def forward(self, x):
         if self.training and self.std != 0:
             scale = self.std * x.detach() if self.is_relative_detach else self.std * x
-            sampled_noise = self.noise.repeat(*x.size()).normal_() * scale
+            sampled_noise = self.noise.float().repeat(*x.size()).normal_().cuda() * scale
             x = x + sampled_noise
         return x 
 

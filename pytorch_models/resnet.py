@@ -73,15 +73,12 @@ class Bottleneck(nn.Module):
 
 class ResNet(nn.Module):
 
-    def __init__(self, block, configuration_blocks, configuration_maps, gray, flat_size, num_classes, last_avg_pool_size=4):
+    def __init__(self, block, configuration_blocks, configuration_maps, input_channels, flat_size, num_classes, last_pool_size=4):
         super(ResNet, self).__init__()
         self.in_planes = configuration_maps[0]
-        self.last_avg_pool_size = last_avg_pool_size
+        self.last_pool_size = last_pool_size
 
-        if gray: initial_channels = 1
-        else: initial_channels = 3
-
-        self.conv1 = nn.Conv2d(initial_channels, configuration_maps[0], kernel_size=3, stride=1, padding=1, bias=False)
+        self.conv1 = nn.Conv2d(input_channels, configuration_maps[0], kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(configuration_maps[0])
 
         resnet_layers = []
@@ -104,14 +101,14 @@ class ResNet(nn.Module):
     def forward(self, x):
         out = F.relu(self.bn1(self.conv1(x)))
         out = self.forward_conv(out)
-        out = F.avg_pool2d(out, self.last_avg_pool_size)
+        out = F.avg_pool2d(out, self.last_pool_size)
         out = out.view(out.size(0), -1)
         try: out = self.linear(out)
         except: assert False, "The Flat size after view is: " + str(out.shape[1])
         return out
 
 
-def ResNetModel(configuration_blocks, configuration_maps, block_type, gray, flat_size=0, num_classes=2):
+def ResNetModel(configuration_blocks, configuration_maps, block_type, input_channels, flat_size=0, num_classes=2):
     my_model = False
     if configuration_blocks in cfg_blocks:
         configuration_blocks = cfg_blocks[configuration_blocks]
@@ -122,7 +119,7 @@ def ResNetModel(configuration_blocks, configuration_maps, block_type, gray, flat
     elif "Bottleneck" in block_type: block_type = Bottleneck
     else: assert False, "No block type '"+str(block_type)+"' allowed!"
 
-    my_model = ResNet(block_type, configuration_blocks, configuration_maps, gray, flat_size, num_classes)
+    my_model = ResNet(block_type, configuration_blocks, configuration_maps, input_channels, flat_size, num_classes)
     return my_model
 
 

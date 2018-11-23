@@ -16,7 +16,7 @@
         x BasicNets Convolucional
         x DenseNet
     -> Hacer posible que pasemos una lista de configuracion de la red para inicializarla (VGG, ResNet, DenseNet, BasicNets)
-
+    -> Meter en los trainers la posibilidad de utilizar mixup
 
  --------------------------
  #### IMPORTANCIA BAJA ####

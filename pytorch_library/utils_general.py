@@ -43,3 +43,10 @@ def time_to_human(start,end):
     #print("{:0>2}:{:0>2}:{:05.2f}".format(int(hours),int(minutes),seconds))
     #print("{:0>1} hr {:0>2} min".format(int(hours),int(minutes)))
     return "{:0>1} hr {:0>2} min".format(int(hours),int(minutes))
+
+def time_elapsed_hours(start, end):
+    #### start and end --> time.time()
+    #### returns string
+    hours, rem = divmod(end-start, 3600)
+    minutes, seconds = divmod(rem, 60)
+    return int(hours)
