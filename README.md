@@ -84,14 +84,15 @@ Es el corazón de la librería. Contiene ayuda para la creación de las distinta
 
 ## Pytorch Examples
 
-  - ***ce_simple_scheduler.py***: Ejemplo de entrenamiento de un modelo MLP utilizando cros-entropía sobre el problema de MNIST a partir de los datos proporcionados por Pytorch. Se utiliza un scheduler de Pytorch para la reducción periódica del learning rate cuando la tasa de acierto se estanca.
-  - ***ce_simple_steps.py***: Entrenamiento de un modelo de VGG utilizando la cros-entropía para el problema de CIFAR-10 a partir de los datos proporcionados por Pytorch. Para la reducción del learning rate se emplea un esquema en el que lo reducimos cada cierto número de epochs.
+  - ***ce_simple_scheduler_MNIST.py***: Ejemplo de entrenamiento de un modelo MLP utilizando cros-entropía sobre el problema de MNIST a partir de los datos proporcionados por Pytorch. Se utiliza un scheduler de Pytorch para la reducción periódica del learning rate cuando la tasa de acierto se estanca.
+  - ***ce_simple_steps_CIFAR10.py***: Entrenamiento de un modelo de VGG utilizando la cros-entropía para el problema de CIFAR-10 a partir de los datos proporcionados por Pytorch. Para la reducción del learning rate se emplea un esquema en el que lo reducimos cada cierto número de epochs.
 
 
 
 License & Credits
 ----
-Gracias a [Kuangliu](https://github.com/kuangliu) por la implementación de los modelos y a [Juan Maroñas](https://github.com/jmaronas) por su ayuda en la creación de diversas funciones. 
+Gracias a [Kuangliu](https://github.com/kuangliu) por la implementación de los modelos y a [Juan Maroñas](https://github.com/jmaronas) por su ayuda en la creación de diversas funciones.
+
 MIT - **Free Software, Hell Yeah!**
 
 

@@ -8,7 +8,7 @@ import torch.nn as nn
 from torch.autograd import Variable
 from pytorchlib.pytorch_library import utils_nets
 
-cfg = {
+CFG_NETS = {
     'MNISTSmallVGG': [16, 'M', 16, 'M', 16, 'M', 32, 'M'], # Usado en MNIST (28,28) -> FlatSize 32*1*1
 
     # QUICK DRAW DOODLE::: Img Sizes: --> 32=FinalMaps*2*2, --> 64=FinalMaps*4*4...
@@ -27,7 +27,7 @@ cfg = {
     'StandardVGG19': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512, 512, 512, 512, 'M']
 }
 
-dropout_values = {
+DROPOUT_VALUES = {
     'ExtraSmallMiniVGGv0': [0.1, 'M', 0.2, 'M', 0.3, 'M', 0.4, 'M', 0.5, 'M'],
     'ExtraSmallMiniVGGv1': [0, 0.2, 'M', 0, 0.3, 'M', 0, 0.4, 'M', 0, 0.4, 'M', 0, 0.5, 'M'],
     'SmallVGGv0': [0.1, 'M', 0.2, 'M', 0.3, 'M', 0.4, 'M', 0.5, 'M'],
@@ -42,22 +42,21 @@ dropout_values = {
 
 # El flat size pude variar dependiendo del tamaño de entrada de las imagenes
 class VGG(nn.Module):
-    def __init__(self, vgg_name, flat_size, dropout, ruido, gray, num_classes=2, custom_config=[]):
+    def __init__(self, maps_config, flat_size, dropout_config, ruido, input_channels, num_classes=2, custom_config=[]):
         super(VGG, self).__init__()
 
-        if gray: in_channels = 1
-        else: in_channels = 3
+        in_channels = input_channels
 
         conv_layers, num_layers = [], 0
-        for indx, (channels) in enumerate(cfg[vgg_name]):
+        for indx, (channels) in enumerate(maps_config):
 
-            last_layer = indx+1 == len(cfg[vgg_name]) or (indx+2 == len(cfg[vgg_name]) and cfg[vgg_name][-1] == "|")
+            last_layer = indx+1 == len(maps_config) or (indx+2 == len(maps_config) and maps_config[-1] == "|")
 
             if channels == 'M':
                 conv_layers.append(utils_nets.apply_pool("max_pool", 2, 2))
             else:
-                if dropout and dropout_values[vgg_name][indx] != 0:
-                    conv_layers.append(utils_nets.apply_conv(in_channels, channels, kernel=(3,3), activation='relu', std=ruido, padding=1, dropout=dropout_values[vgg_name][indx], batchnorm=True))
+                if dropout_config and dropout_config[indx] != 0:
+                    conv_layers.append(utils_nets.apply_conv(in_channels, channels, kernel=(3,3), activation='relu', std=ruido, padding=1, dropout=dropout_config[indx], batchnorm=True))
                 else:
                     conv_layers.append(utils_nets.apply_conv(in_channels, channels, kernel=(3,3), activation='relu', std=ruido, padding=1, dropout=0.0, batchnorm=True))
 
@@ -80,9 +79,16 @@ class VGG(nn.Module):
         return x
 
 
-def VGGModel(vgg_name, flat_size, dropout, ruido, gray, num_classes=2):
-    if vgg_name not in cfg:
-        assert False, 'No VGG Model with that name!'
-    else:
-        my_model = VGG(vgg_name, flat_size, dropout, ruido, gray, num_classes=num_classes)
-        return my_model
+def VGGModel(vgg_cfg, flat_size, dropout, ruido, input_channels, num_classes=2):
+
+    if type(vgg_cfg)==type([]): vgg_configuration = vgg_cfg
+    elif type(vgg_cfg)==type("") and vgg_cfg not in CFG_NETS: assert False, 'No VGG Model with that name!'
+    else: vgg_configuration = CFG_NETS[vgg_cfg]
+
+    if type(dropout)==type([]): dropout_configuration = dropout
+    elif dropout==0 or dropout==0.0: dropout_configuration = 0
+    elif type(dropout)==type("") and dropout not in DROPOUT_VALUES: assert False, 'No VGG Model Dropout configuration with that name!'
+    else: dropout_configuration = DROPOUT_VALUES[dropout]
+
+    my_model = VGG(vgg_configuration, flat_size, dropout_configuration, ruido, input_channels, num_classes=num_classes)
+    return my_model

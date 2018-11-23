@@ -38,15 +38,13 @@ class Transition(nn.Module):
 
 
 class DenseNet(nn.Module):
-    def __init__(self, block, nblocks, gray, growth_rate=12, reduction=0.5, num_classes=2):
+    def __init__(self, block, nblocks, input_channels, growth_rate=12, reduction=0.5, num_classes=2):
         super(DenseNet, self).__init__()
         self.growth_rate = growth_rate
 
         num_planes = 2*growth_rate
-        if gray: initial_channels = 1
-        else: initial_channels = 3
 
-        self.conv1 = nn.Conv2d(initial_channels, num_planes, kernel_size=3, padding=1, bias=False)
+        self.conv1 = nn.Conv2d(input_channels, num_planes, kernel_size=3, padding=1, bias=False)
 
         self.dense1 = self._make_dense_layers(block, num_planes, nblocks[0])
         num_planes += nblocks[0]*growth_rate
@@ -91,18 +89,18 @@ class DenseNet(nn.Module):
         except: assert False, "The Flat size after view is: " + str(out.shape[1])
         return out
 
-def DenseNetModel(res_name, growth_rate, gray):
+def DenseNetModel(res_name, growth_rate, input_channels):
     my_model = False
-    if 'ExtraSmall' in res_name: my_model = DenseNet(Bottleneck, [3,6,6,3], gray, growth_rate=growth_rate)
-    elif 'Small' in res_name: my_model = DenseNet(Bottleneck, [6,12,12,6], gray, growth_rate=growth_rate)
-    elif 'Medium' in res_name: my_model = DenseNet(Bottleneck, [6,12,18,12], gray, growth_rate=growth_rate)
-    elif 'LargeS' in res_name: my_model = DenseNet(Bottleneck, [3,6,6,12,6,3], gray, growth_rate=growth_rate)
-    elif 'LargeM' in res_name: my_model = DenseNet(Bottleneck, [3,6,12,24,16,12], gray, growth_rate=growth_rate)
+    if 'ExtraSmall' in res_name: my_model = DenseNet(Bottleneck, [3,6,6,3], input_channels, growth_rate=growth_rate)
+    elif 'Small' in res_name: my_model = DenseNet(Bottleneck, [6,12,12,6], input_channels, growth_rate=growth_rate)
+    elif 'Medium' in res_name: my_model = DenseNet(Bottleneck, [6,12,18,12], input_channels, growth_rate=growth_rate)
+    elif 'LargeS' in res_name: my_model = DenseNet(Bottleneck, [3,6,6,12,6,3], input_channels, growth_rate=growth_rate)
+    elif 'LargeM' in res_name: my_model = DenseNet(Bottleneck, [3,6,12,24,16,12], input_channels, growth_rate=growth_rate)
 
-    elif 'Standard121' in res_name: my_model = DenseNet(Bottleneck, [6,12,24,16], gray, growth_rate=32)
-    elif 'Standard169' in res_name: my_model = DenseNet(Bottleneck, [6,12,32,32], gray, growth_rate=32)
-    elif 'Standard201' in res_name: my_model = DenseNet(Bottleneck, [6,12,48,32], gray, growth_rate=32)
-    elif 'Standard161' in res_name: my_model = DenseNet(Bottleneck, [6,12,36,24], gray, growth_rate=48)
+    elif 'Standard121' in res_name: my_model = DenseNet(Bottleneck, [6,12,24,16], input_channels, growth_rate=32)
+    elif 'Standard169' in res_name: my_model = DenseNet(Bottleneck, [6,12,32,32], input_channels, growth_rate=32)
+    elif 'Standard201' in res_name: my_model = DenseNet(Bottleneck, [6,12,48,32], input_channels, growth_rate=32)
+    elif 'Standard161' in res_name: my_model = DenseNet(Bottleneck, [6,12,36,24], input_channels, growth_rate=48)
 
     if my_model:
         return my_model

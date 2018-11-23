@@ -75,14 +75,13 @@ class Block(nn.Module):
 
 class MobileNetV2(nn.Module):
 
-    def __init__(self, mobilenet_name, gray, flat_size, last_pool_size, num_classes=2):
+    def __init__(self, mobilenet_name, input_channels, flat_size, last_pool_size, num_classes=2):
         super(MobileNetV2, self).__init__()
         self.name = mobilenet_name
         self.last_pool_size = last_pool_size
-        if gray: initial_channels = 1
-        else: initial_channels = 3
+
         # NOTE: change conv1 stride 2 -> 1 for CIFAR10
-        self.conv1 = nn.Conv2d(initial_channels, 32, kernel_size=3, stride=1, padding=1, bias=False)
+        self.conv1 = nn.Conv2d(input_channels, 32, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(32)
         self.layers = self._make_layers(mobilenet_name, in_planes=32)
         # cfg[mobilenet_name][-1][1] -> Los mapas de salida de make layers
@@ -110,9 +109,9 @@ class MobileNetV2(nn.Module):
         except: assert False, "The Flat size after view is: " + str(out.shape[1])
         return out
 
-def MobileNetv2Model(mobilenet_name, gray, num_classes, flat_size, last_pool_size):
+def MobileNetv2Model(mobilenet_name, input_channels, num_classes, flat_size, last_pool_size):
     if mobilenet_name not in cfg:
         assert False, 'No MobileNetv2 Model with that name!'
     else:
-        my_model = MobileNetV2(mobilenet_name, gray, flat_size, last_pool_size, num_classes)
+        my_model = MobileNetV2(mobilenet_name, input_channels, flat_size, last_pool_size, num_classes)
         return my_model

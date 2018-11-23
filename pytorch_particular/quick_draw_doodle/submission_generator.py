@@ -54,7 +54,7 @@ model_path = ''
 
 model = models_interface.load_model(model_type, model_config=model_config, last_pool_size=last_pool_size,
                                     states_path=states_path, flat_size=flat_size, model_path=model_path,
-                                    block_type=block_type, gray=1, out_features=num_classes).cuda()
+                                    block_type=block_type, input_channels=1, out_features=num_classes).cuda()
 
 test_predictions = utils_training.predictions_models_data([model], x_test, batch_size=batch_size)
 submission = utils_doodle.preds2submission(test_predictions, test_df)

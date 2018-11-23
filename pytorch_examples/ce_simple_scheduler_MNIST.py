@@ -16,8 +16,11 @@ from torch.autograd.variable import Variable
 from torchvision import transforms, datasets
 import torch.nn.functional as F
 
-from pytorchlib.pytorch_models import models_interface
-from pytorchlib.pytorch_library import utils_general, utils_training
+try:
+    from pytorchlib.pytorch_models import models_interface
+    from pytorchlib.pytorch_library import utils_general, utils_training
+except:
+    print("Es necesario que pytorchlib este en mismo directorio!")
 
 
 import argparse
@@ -36,29 +39,44 @@ def parse_args():
 
 
 # model_type, model_cfg, optimizador = parse_args()
-model_type, model_cfg, optimizador = "Imagenet", "RESNET50", "SGD"
-slack_channel = "quick_draw_kaggle"
-num_classes = 2
+num_classes = 10
+model_type, model_cfg, model_cfg_txt, optimizador = "Simple_MLP", [256, 512, 512, num_classes, "|"], "256_512_512", "SGD"
+dropout, ruido, input_channels = 0.0, 0.0, 0
+growth_rate, flat_size, out_features, last_pool_size = 0, 0, 0, 0
+out_type, block_type = "relu", ""
+slack_channel = "general"
 
-if type(model_cfg)==list or type(model_cfg)==tuple:
-    model_cfg_txt = '_'.join(model_cfg)
-else: model_cfg_txt = model_cfg
+print("\nEntrenando CE Simple con {} - {} utilizando {} - MNIST!)".format(model_type, str(model_cfg_txt), optimizador))
 
-print("\nEntrenando CE Simple con {} - {} utilizando {} - Quick Draw Doodle!)".format(model_type, str(model_cfg_txt), optimizador))
+# Establecemos una semilla para la replicacion de los experimentos correctamente
+seed = 0
+torch.manual_seed(seed=seed)
+torch.cuda.manual_seed(seed=seed)
 
-"""
-    -> LOAD YOUR DATA HERE!!!!!
-    # Establecemos una semilla para la replicacion de los experimentos correctamente
-    seed = 0
-    torch.manual_seed(seed=seed)
-    torch.cuda.manual_seed(seed=seed)
+batch_size = 64
+train_loader = torch.utils.data.DataLoader(
+    datasets.MNIST('~/DeepLearning/PytorchDatasets/MNIST', train=True, download=True,
+                    transform=transforms.Compose([
+                        transforms.RandomRotation(4),
+                        transforms.ToTensor(),
+                        transforms.Normalize((0.1307,), (0.3081,))
+                    ])),
+    batch_size=batch_size, shuffle=True)
 
-    batch_size = 64
-"""
+test_loader = torch.utils.data.DataLoader(
+    datasets.MNIST('~/DeepLearning/PytorchDatasets/MNIST', train=False, transform=transforms.Compose([
+                        transforms.ToTensor(),
+                        transforms.Normalize((0.1307,), (0.3081,))
+                    ])),
+    batch_size=batch_size, shuffle=False)
+
+
+in_features = 28*28*1 # Tamaño de las imagenes tras el crop en formato vector
+
 
 """ ---- MODELOS ---- """
 
-my_model = models_interface.select_model(model_name, model_config=model_config, dropout=dropout, ruido=ruido, gray=gray, growth_rate=growth_rate, flat_size=flat_size, in_features=in_features, out_type=out_type, block_type=block_type, out_features=out_features, last_pool_size=last_pool_size)
+model = models_interface.select_model(model_type, model_config=model_cfg, dropout=dropout, ruido=ruido, input_channels=input_channels, growth_rate=growth_rate, flat_size=flat_size, in_features=in_features, out_type=out_type, block_type=block_type, out_features=out_features, last_pool_size=last_pool_size)
 
 """ ---- CONSTANTES DE NUESTRO PROGRAMA ---- """
 
@@ -73,18 +91,18 @@ model_name_path = "results/CE_Simple/"+optimizador+"/"+model_type+"/"+str(model_
 results = {}
 results["name"] = model_name_path
 results["log-loss"] = []
-results["log-acc"] = []
+results["log-acc1"], results["log-acc3"] = [], []
 results["time"] = ""
 
-data_train_per_epoch = train_samples
-data_eval_per_epoch = val_samples
+data_train_per_epoch = len(train_loader)
+data_eval_per_epoch = len(test_loader)
 
 """ ---- ENTRENAMIENTO DEL MODELO ---- """
 
 model_optimizer = utils_training.get_optimizer(optimizador, model.parameters(), lr=lr_start)
 # https://pytorch.org/docs/stable/optim.html#torch.optim.lr_scheduler.ReduceLROnPlateau
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(model_optimizer, 'max', factor=0.5,
-            patience=7, cooldown=3, threshold=0.005, min_lr=0, verbose=True) # Queremos maximizar el accuracy
+            patience=7, cooldown=3, threshold=0.005, min_lr=0.0005, verbose=True) # Queremos maximizar el accuracy
 
 
 start_time = time.time()
@@ -96,16 +114,17 @@ for epoch in range(1, total_epochs+1):
         batch_data, batch_target = data
         batch_data = Variable(batch_data.cuda())
         batch_target = Variable(batch_target.cuda())
-        total_loss += utils_training.train_simple_model(model, batch_data, batch_target, loss_ce, model_optimizer)
+        total_loss += utils_training.train_simple_model(model, batch_data, batch_target, loss_ce, model_optimizer, net_type="fully-connected")
         if total_data_train >= data_train_per_epoch: break
         else: total_data_train += len(batch_data)
 
-    acc1 = utils_training.evaluate_accuracy_models_generator([model], val_loader, max_data=data_eval_per_epoch, topk=(1,))
+    acc1, acc3 = utils_training.evaluate_accuracy_models_generator([model], test_loader, max_data=data_eval_per_epoch, topk=(1,3), net_type="fully-connected")
     curr_loss = total_loss / total_data_train
-    print("Epoch {}: Learning Rate: {:.6f}, Loss: {:.6f}, Accuracy: {:.2f} --- ".format(epoch, utils_training.get_current_lr(model_optimizer), curr_loss, acc1*100) + utils_general.time_to_human(start_time, time.time()))
+    print("Epoch {}: Learning Rate: {:.6f}, Train Loss: {:.6f}, acc@1: {:.2f}, acc@3: {:.2f} --- ".format(epoch, utils_training.get_current_lr(model_optimizer), curr_loss, acc1*100, acc3*100) + utils_general.time_to_human(start_time, time.time()))
 
     results["log-loss"].append(curr_loss)
-    results["log-acc"].append(acc1)
+    results["log-acc1"].append(acc1)
+    results["log-acc3"].append(acc3)
 
     if acc1 > best_acc:
         best_acc = acc1
@@ -113,6 +132,8 @@ for epoch in range(1, total_epochs+1):
 
     scheduler.step(acc1)
 
+
+print("MNIST RESULTS - Acc@1 {:.2f}, Acc@3 {:.2f}".format(np.array(results["log-acc1"]).max()*100,np.array(results["log-acc3"]).max()*100))
 
 """ ---- GUARDADO DE RESULTADOS Y LOGGING ---- """
 results["time"] = utils_general.time_to_human(start_time, time.time())
@@ -122,6 +143,6 @@ torch.save(best_model_state_dict, model_name_path+"CE_Simple_lrPlateau_checkpoin
 with open(model_name_path+"CE_Simple_lrPlateau_LOG.pkl", 'wb') as f:
     pickle.dump(results, f, pickle.HIGHEST_PROTOCOL)
 
-utils_general.slack_message("(CE Simple - Quick Draw Doodle) Accuracy modelo " + model_type + " - " + str(model_cfg_txt) +
-                            " utilizando " + optimizador +": " + str(np.max(np.array(results["log-acc"])))[0:5] + "% --- " +
+utils_general.slack_message("(CE Simple - MNIST) Accuracy modelo " + model_type + " - " + str(model_cfg_txt) +
+                            " utilizando " + optimizador +": " + str(np.max(np.array(results["log-acc1"])))[0:5] + "% --- " +
                             utils_general.time_to_human(start_time, time.time()), slack_channel)
