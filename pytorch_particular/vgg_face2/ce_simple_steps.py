@@ -17,7 +17,6 @@ from torchvision import transforms, datasets
 import torch.nn.functional as F
 
 from pytorchlib.pytorch_models import models_interface
-from pytorchlib.pytorch_data import data_interface
 from pytorchlib.pytorch_library import utils_general, utils_training
 
 import albumentations
