@@ -10,6 +10,7 @@ from collections import OrderedDict
 from pytorchlib.pytorch_models.vgg import VGGModel
 from pytorchlib.pytorch_models.resnet import ResNetModel
 from pytorchlib.pytorch_models.seresnext import SeResNeXtModel
+from pytorchlib.pytorch_models.nasnet_a_large import NasNetALargeModel
 from pytorchlib.pytorch_models.mobilenetv2 import MobileNetv2Model
 from pytorchlib.pytorch_models.densenet import DenseNetModel
 from pytorchlib.pytorch_models.basic_nets import BasicModel
@@ -51,6 +52,9 @@ def select_model(model_name, model_config=[], flat_size=0, in_features=0, out_fe
     
     elif 'SeResNeXt' in model_name:
         my_model = SeResNeXtModel(model_config[0], model_config[1], input_channels, block_type=block_type, flat_size=flat_size, num_classes=out_features).cuda()
+
+    elif 'NASNetALarge' in model_name:
+        my_model = NasNetALargeModel(input_channels, num_classes=out_features, pretrained=False).cuda()
 
     elif 'Simple_MLP' in model_name:
         my_model = BasicModel(model_config, "MLP", in_features, out_type, input_channels=input_channels, dropout=dropout, std=ruido, batchnorm=batchnorm, default_act=default_act).cuda()

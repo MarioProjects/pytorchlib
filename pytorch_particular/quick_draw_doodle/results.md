@@ -22,7 +22,9 @@
 |   ResNet    |     Basic18_Standard     |    64x64    |            No            | All - 200000 epoch |    79.26   |    92.34   |    0.893    | >>> I_Retrain TRAZOS3y2
 ----------------------> (Basic18_Standard) Al utilizar un batch mayor (512) el accuracy se ve reducido |    78.57   |    91.57   |    0.895    |
 |   SENet*    |      PreAct34_Small      |    64x64    | HFlip & ShiftScaleRotate | 50k - 145000 epoch |    77.60   |    90.65   |             |
+|   SENet     |    PreAct50_Standard     |    64x64    |            No            | All - 200000 epoch |    79.57   |    92.34   |    ?????    | >>> Implicit retrain 0.1
 |   SENet     |  PreAct50_Standard_Color |    64x64    |            No            | All - 200000 epoch |    80.37   |    93.03   |    0.914    | >>> Implicit retrain 0.1
+|   SENet     |     PreAct50_Standard    |    64x64    |            No            | All - 200000 epoch |    80.26   |    93.03   |    0.909    | >>> I_Retrain TRAZOS3
 ------------------------------------------> Probando PreAct50_Small_Color con modelo mejor Acc1 y modelo mejor ACC3 obtienen mismo LB 0.914
 |  SEResNext  |     Bottle50_Standard    |    64x64    |            No            | All - 200000 epoch |    76.91   |    90.97   |    0.885    | >>> Implicit retrain 0.1
 |  SEResNext  |     Bottle50_Standard    |    64x64    |            No            | All - 200000 epoch |    77.74   |    91.29   |    0.882    | >>> I_Retrain TRAZOS3
@@ -38,7 +40,8 @@
 
 |   Model Type  |     Configuration    | Images Type |     Data Augmentation    |     Data Usage     |    GPU    |
 |:-------------:|:--------------------:|:-----------:|:------------------------:|:------------------:|:---------:|
-|     SeNet     |  PreAct50_Standard   |    64x64    |            No            | All - 200000 epoch |    P12    | >>> Implicit retrain 0.1
+|     SeNet     |  PreAct50_Standard   |    64x64    |            No            | All - 200000 epoch |    P12    | >>> Implicit retrain 0.1 Trazos3
+se-resnext-50 (lw 3) -> gpu6
 ->> GPU10 Mixup res18
 
 
