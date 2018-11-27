@@ -25,6 +25,9 @@
 |   SENet     |    PreAct50_Standard     |    64x64    |            No            | All - 200000 epoch |    79.57   |    92.34   |    ?????    | >>> Implicit retrain 0.1
 |   SENet     |  PreAct50_Standard_Color |    64x64    |            No            | All - 200000 epoch |    80.37   |    93.03   |    0.914    | >>> Implicit retrain 0.1
 |   SENet     |     PreAct50_Standard    |    64x64    |            No            | All - 200000 epoch |    80.26   |    93.03   |    0.909    | >>> I_Retrain TRAZOS3
+|   SENet     |     PreAct50_Standard    |    64x64    |            No            | All - 200000 epoch |    80.43   |    92.83   |    0.911    | >>> I_Retrain TRAZOS3 COLOR
+|   SENet     |     PreAct50_Standard    |    64x64    |            No            | All - 200000 epoch |    79.25   |    92.25   |    0.904    | >>> I_Retrain Color MaxPool
+|   SENet     |     PreAct50_Standard    |    64x64    |            No            | All - 200000 epoch |    79.94   |    92.77   |    0.909    | >>> I_Retrain Color LW4
 ------------------------------------------> Probando PreAct50_Small_Color con modelo mejor Acc1 y modelo mejor ACC3 obtienen mismo LB 0.914
 |  SEResNext  |     Bottle50_Standard    |    64x64    |            No            | All - 200000 epoch |    76.91   |    90.97   |    0.885    | >>> Implicit retrain 0.1
 |  SEResNext  |     Bottle50_Standard    |    64x64    |            No            | All - 200000 epoch |    77.74   |    91.29   |    0.882    | >>> I_Retrain TRAZOS3
@@ -40,7 +43,7 @@
 
 |   Model Type  |     Configuration    | Images Type |     Data Augmentation    |     Data Usage     |    GPU    |
 |:-------------:|:--------------------:|:-----------:|:------------------------:|:------------------:|:---------:|
-|     SeNet     |  PreAct50_Standard   |    64x64    |            No            | All - 200000 epoch |    P12    | >>> Implicit retrain 0.1 Trazos3
+|     SeNet     |  PreAct50_Standard   |    64x64    |            No            | All - 200000 epoch |    P12    | >>> Batch cumulative 512 lr 0.15...
 se-resnext-50 (lw 3) -> gpu6
 ->> GPU10 Mixup res18
 

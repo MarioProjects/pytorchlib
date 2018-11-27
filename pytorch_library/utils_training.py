@@ -93,10 +93,9 @@ def simple_target_creator(samples, value):
     return Variable(torch.ones(samples, 1)).type(torch.cuda.FloatTensor)*value
 
 
-def train_simple_model(model, data, target, loss, optimizer, out_pos=-1, target_one_hot=False, net_type="convolutional"):
+def train_simple_model(model, data, target, loss, optimizer, out_pos=-1, target_one_hot=False, net_type="convolutional", do_step=True):
     # Losses: https://pytorch.org/docs/stable/nn.html
-    model.train()
-    optimizer.zero_grad()
+    if(model.training==False): model.train()
 
     if net_type == "fully-connected":
         model_out = model.forward(Variable(data.float().view(data.shape[0], -1)))
@@ -122,8 +121,10 @@ def train_simple_model(model, data, target, loss, optimizer, out_pos=-1, target_
         cost = loss(model_out, target[:,0])
     cost.backward()
 
-    # Actualizamos pesos y gradientes
-    optimizer.step()
+    if do_step:
+        # Actualizamos pesos y gradientes
+        optimizer.step()
+        optimizer.zero_grad()
 
     return cost.item()
 
@@ -233,6 +234,74 @@ def evaluate_accuracy_models_data(models, X_data, y_data, batch_size=100, max_da
     if len(accuracies) == 1: return accuracies[0]
     return accuracies
 
+
+def evaluate_accuracy_loss_models_data(models, X_data, y_data, loss, batch_size=100, max_data=0, topk=(1,), net_type="convolutional"):
+    """Computes the accuracy over the k top predictions for the specified values of k"""
+    # Si paso un modelo y topk(1,5) -> acc1, acc5,
+    # Si paso dos modelo y topk(1,5) -> m1_acc1, m1_acc5, m2_acc1, m2_acc5
+    with torch.no_grad():
+
+        if type(topk)==int:
+            maxk = topk
+            topk = (topk,)
+        else: maxk = max(topk)
+
+        correct_models, loss_models, total_samples = [0]*len(models), [0]*len(models), 0
+
+        total_samples = 0
+        while True:
+
+            # Debemos comprobar que no nos pasamos con el batch_size
+            if total_samples + batch_size >= len(X_data): batch_size = (len(X_data)) - total_samples
+
+            batch = X_data[total_samples:total_samples+batch_size]
+            target = y_data[total_samples:total_samples+batch_size]
+
+            # calculo predicciones para el error de test de todos los modelos
+            # Tengo que hacer el forward para cada modelo y ver que clases acierta
+            for model_indx, model in enumerate(models):
+                #if(model.training==True): model.eval()
+
+                if net_type == "fully-connected":
+                    model_out = model.forward(Variable(batch.float().view(batch.shape[0], -1).cuda()))
+                elif net_type == "convolutional":
+                    model_out = model.forward(Variable(batch.float().cuda()))
+                else: assert False, "Please define your model type!"
+
+                # Algunos modelos devuelven varias salidas como pueden ser la capa
+                # reshape y los logits, etc... Por lo que se establece el standar
+                # de que la ultima salida sean los logits del modelo para hacer la clasificacion
+                if type(model_out) is list or type(model_out) is tuple:
+                    model_out = model_out[-1]
+
+                # Transformamos los logits a salida con el indice con el mayor valor
+                #  de las tuplas que continen los logits
+                res_topk = np.array(topk_accuracy(model_out, target.cuda(), topk=topk))
+                correct_models[model_indx] += res_topk
+
+                try: cost = loss(model_out, target.cuda())
+                except:
+                    global CROSS_ENTROPY_ONE_HOT_WARNING
+                    if not CROSS_ENTROPY_ONE_HOT_WARNING:
+                        print("\nWARNING-INFO: Crossentropy not works with one hot target encoding!\n")
+                        CROSS_ENTROPY_ONE_HOT_WARNING = True
+                    cost = loss(model_out, target[:,0])
+                loss_models[model_indx] += cost.item()
+
+            total_samples+=batch_size
+            if max_data != 0 and total_samples >= max_data or total_samples == len(X_data): break
+
+    accuracies, losses = [], []
+    for indx, result_model in enumerate(correct_models):
+        for topkres in result_model:
+            accuracies.append((topkres*1.0)/total_samples)
+        losses.append((loss_models[indx]*1.0)/total_samples)
+
+    #accuracies = list(((np.array(correct_models) * 1.0) / total_samples))
+    if len(accuracies) == 1: return accuracies[0], losses[0]
+    return accuracies[0], accuracies[1], losses[0]
+    #zipped = [a for a in zip(accuracies,losses)]
+    #return [item for sublist in zipped for item in sublist]
 
 def evaluate_accuracy_model_predictions(model_out, y_data, batch_size=100, max_data=0, topk=(1,)):
     """Computes the accuracy over the k top predictions for the specified values of k"""

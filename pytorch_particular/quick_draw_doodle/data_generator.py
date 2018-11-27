@@ -16,7 +16,7 @@ COLORS = [(255, 0, 0) , (255, 255, 0),  (128, 255, 0),  (0, 255, 0), (0, 255, 12
 
 
 
-def draw_cv2(raw_strokes, size=256, lw=6, time_color=True, color=False):
+def draw_cv2(raw_strokes, size=256, lw=4, time_color=True, color=False):
     if color:
         img = np.zeros((BASE_SIZE, BASE_SIZE, 3), np.uint8)
         for t, stroke in enumerate(raw_strokes):
@@ -40,7 +40,7 @@ def draw_cv2(raw_strokes, size=256, lw=6, time_color=True, color=False):
         else:
             return img
 
-def draw_cv2_trazos(raw_strokes, size=256, lw=6, time_color=True, color=False, trazos=0, trazo_actual=0):
+def draw_cv2_trazos(raw_strokes, size=256, lw=4, time_color=True, color=False, trazos=0, trazo_actual=0):
 
     # Calculo el numero de trazos totales del dibujo
     trazos_totales = 0
@@ -73,7 +73,7 @@ def draw_cv2_trazos(raw_strokes, size=256, lw=6, time_color=True, color=False, t
     else:
         return img
 
-def image_generator_doodle(size, batch_size, ks, data_amount, transforms=[], norm="", lw=6, time_color=True, num_classes=340, color=False, trazos=[0]):
+def image_generator_doodle(size, batch_size, ks, data_amount, transforms=[], norm="", lw=4, time_color=True, num_classes=340, color=False, trazos=[0]):
     # data_amount = "1k" "10k" "50k"
     while True:
         for k in np.random.permutation(ks):
@@ -139,7 +139,7 @@ def image_generator_doodle(size, batch_size, ks, data_amount, transforms=[], nor
                 yield x, y
 
 
-def df_to_image_array_doodle(df, size, lw=6, time_color=True, transforms=[], norm="", color=False, trazos=[0]):
+def df_to_image_array_doodle(df, size, lw=4, time_color=True, transforms=[], norm="", color=False, trazos=[0]):
     df=df.copy(deep=True)
     df['drawing'] = df['drawing'].apply(json.loads)
 
