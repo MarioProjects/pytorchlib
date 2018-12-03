@@ -28,6 +28,12 @@
 |   SENet     |     PreAct50_Standard    |    64x64    |            No            | All - 200000 epoch |    80.43   |    92.83   |    0.911    | >>> I_Retrain TRAZOS3 COLOR
 |   SENet     |     PreAct50_Standard    |    64x64    |            No            | All - 200000 epoch |    79.25   |    92.25   |    0.904    | >>> I_Retrain Color MaxPool
 |   SENet     |     PreAct50_Standard    |    64x64    |            No            | All - 200000 epoch |    79.94   |    92.77   |    0.909    | >>> I_Retrain Color LW4
+|   SENet     |  PreAct50_StandardColor  |    64x64    |            No            | All - 200000 epoch |    80.62   |    93.05   |    0.911    | >>> LR FIJO 0.1 - 150 epochs
+|   SENet     |  PreAct50_StandardColor  |    64x64    |            No            | All - 200000 epoch |    82.68   |    93.85   |    0.929    | >>> LR FIJO 0.1 -> 0.018LR - 150 epochs
+|   SENet     |  PreAct50_StandardColor  |    64x64    |            No            | All - 300000 epoch |    83.20   |    93.97   |    0.932    | >>> LR FIJO 0.1 -> 0.018 -> 0.004899 - 54 epochs
+|   SENet     |  PreAct50_StandardColor  |    64x64    |            No            | All - 300000 epoch |    83.54   |    93.97   |    0.932    | >>> LR FIJO 0.1 -> 0.018 -> 0.001680 - 78 epochs
+|   SENet     |  PreAct50_StandardColor  |    64x64    |            No            | All - 300000 epoch |    -----   |    -----   |    -----    | >>> LR FIJO 0.1 -> 0.018LR -> - 150 epochs
+|   SENet     |  PreAct50_StandardColor  |    64x64    |            No            | All - 200000 epoch |    82.14   |    93.57   |    0.927    | >>> Mixup 0.2
 ------------------------------------------> Probando PreAct50_Small_Color con modelo mejor Acc1 y modelo mejor ACC3 obtienen mismo LB 0.914
 |  SEResNext  |     Bottle50_Standard    |    64x64    |            No            | All - 200000 epoch |    76.91   |    90.97   |    0.885    | >>> Implicit retrain 0.1
 |  SEResNext  |     Bottle50_Standard    |    64x64    |            No            | All - 200000 epoch |    77.74   |    91.29   |    0.882    | >>> I_Retrain TRAZOS3
@@ -35,6 +41,7 @@
 | MobileNetv2*|         Standard         |    64x64    |           HFlip          | 50k - 145000 epoch |    76.65   |    90.57   |             | >>> scheduler
 | MobileNetv2*|         Standard         |    64x64    |            No            | 50k - 200000 epoch |    77.34   |    91.74   |    0.883    | >>> steps lr 0.35, 0.1 ...
 |    VGG*     |      QDrawLargeVGG       |   224x224   |            No            | 50k - 200000 epoch |    71.65   |    86.57   |             |
+|  IMAGENET   |        INCEPTIONV3       |   299x299   |            No            | All - 200000 epoch |    79.25   |    91.77   |             |
 
 
 -* Pytorchlib old version

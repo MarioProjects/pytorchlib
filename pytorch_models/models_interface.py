@@ -136,7 +136,7 @@ def select_model(model_name, model_config=[], flat_size=0, in_features=0, out_fe
     return my_model.cuda()
 
 
-def load_model(model_name, model_config=[], states_path="", model_path="", input_channels=0, dropout=0.0, ruido=0.0, growth_rate=0, in_features=0, flat_size=0, out_features=0, out_type='relu', block_type=None, last_pool_size=0, cardinality=32):
+def load_model(model_name, model_config=[], states_path="", model_path="", input_channels=0, dropout=0.0, ruido=0.0, growth_rate=0, in_features=0, flat_size=0, out_features=0, out_type='relu', block_type=None, last_pool_size=0, cardinality=32, data_parallel=False):
 
     if model_path!="" and os.path.exists(model_path):
         return torch.load(model_path)
@@ -144,7 +144,7 @@ def load_model(model_name, model_config=[], states_path="", model_path="", input
 
     if not os.path.exists(states_path): assert False, "Wrong Models_States Path!"
 
-    my_model = select_model(model_name, model_config=model_config, dropout=dropout, ruido=ruido, input_channels=input_channels, growth_rate=growth_rate, flat_size=flat_size, in_features=in_features, out_type=out_type, block_type=block_type, out_features=out_features, last_pool_size=last_pool_size, cardinality=cardinality)
+    my_model = select_model(model_name, model_config=model_config, dropout=dropout, ruido=ruido, input_channels=input_channels, growth_rate=growth_rate, flat_size=flat_size, in_features=in_features, out_type=out_type, block_type=block_type, out_features=out_features, last_pool_size=last_pool_size, cardinality=cardinality, data_parallel=data_parallel)
     model_state_dict = torch.load(states_path)
 
     # create new OrderedDict that does not contain `module.`

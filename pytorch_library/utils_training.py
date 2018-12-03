@@ -1,6 +1,7 @@
 import types
 import numpy as np
 import torch
+import math
 from torch import nn, optim
 import torch.nn.functional as F
 from torch.autograd.variable import Variable
@@ -66,7 +67,7 @@ def get_current_lr(optimizer):
         return param_group['lr']
 
 
-def anneal_lr(models, lr_init, total_epochs, current_epoch, optimizer_type, flag=True):
+def anneal_lr_lineal(models, lr_init, total_epochs, current_epoch, optimizer_type, flag=True):
     # flag nos indica si realmente queremos hacer el annel sobre las models
     if not flag: lr_new = lr_init
     else: lr_new = -(lr_init/total_epochs) * current_epoch + lr_init
@@ -531,3 +532,38 @@ def loss_fn_kd_kldivloss(outputs, teacher_outputs, labels, temperature, alpha=0.
               F.cross_entropy(outputs, labels) * (1. - alpha)
 
     return KD_loss
+
+
+'''
+mixup: BEYOND EMPIRICAL RISK MINIMIZATION: https://arxiv.org/abs/1710.09412
+https://github.com/facebookresearch/mixup-cifar10
+'''
+
+def mixup_data(x, y, alpha=1.0, use_cuda=True):
+    '''Returns mixed inputs, pairs of targets, and lambda'''
+    if alpha > 0:
+        lam = np.random.beta(alpha, alpha)
+    else:
+        lam = 1
+
+    batch_size = x.size()[0]
+    if use_cuda:
+        index = torch.randperm(batch_size).cuda()
+    else:
+        index = torch.randperm(batch_size)
+
+    mixed_x = lam * x + (1 - lam) * x[index, :]
+    y_a, y_b = y, y[index]
+    return mixed_x, y_a, y_b, lam
+
+
+def mixup_criterion(criterion, pred, y_a, y_b, lam):
+    return lam * criterion(pred, y_a) + (1 - lam) * criterion(pred, y_b)
+
+### Ejemplo de uso
+# inputs, targets_a, targets_b, lam = mixup_data(batch_data, batch_target, alpha_mixup)
+# inputs, targets_a, targets_b = map(Variable, (inputs, targets_a, targets_b))
+
+# outputs = model(inputs)
+# loss = mixup_criterion(loss_ce, outputs, targets_a, targets_b, lam)
+# total_loss += loss.item()
