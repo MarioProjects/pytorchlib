@@ -44,7 +44,7 @@ class FoldersDataset(data.Dataset):
         self.imgs_paths = all_paths
         self.labels = all_classes
         self.transforms = transforms
-        self.norm= normalization
+        self.norm = normalization
         
     def __getitem__(self,index):
         img = load_img(self.imgs_paths[index])
@@ -148,6 +148,7 @@ def normalize(tr_feat, te_feat, norm):
         tr_feats/=255
         te_feats/=255
 
+    elif norm=="": pass
     else: assert False, "Invalid Normalization"
 
     return tr_feat, te_feat
@@ -171,7 +172,7 @@ def single_normalize(feats, norm):
     elif norm=='255':
         feats/=255
 
-    elif norm==None: pass
+    elif norm==None or norm=="": pass
     else: raise NotImplemented
 
     return feats
