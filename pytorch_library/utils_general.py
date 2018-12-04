@@ -4,10 +4,13 @@ from torch import nn, optim
 import torch.nn.functional as F
 from slackclient import SlackClient
 from torch.autograd.variable import Variable
+import os
+
+SLACK_TOKEN = os.environ.get('SLACK_TOKEN')
+if SLACK_TOKEN==None: print("No Slack Token found in system!")
 
 def slack_message(message, channel):
-    token = 'xoxp-458177397862-456198240913-464006277364-a7557a18c11f5e99ca9ce33deacbefc4'
-    sc = SlackClient(token)
+    sc = SlackClient(SLACK_TOKEN)
     sc.api_call('chat.postMessage', channel=channel,
                 text=message, username='My Sweet Bot',
                 icon_emoji=':robot_face:')
