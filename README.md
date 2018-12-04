@@ -26,6 +26,12 @@ echo "alias venv='source /home/maparla/venv/bin/activate'" >> ~/.bashrc
 echo "venv"  >> ~/.bashrc
 ```
 
+Además, si deseamos utilizar la funcionalidad de Slack ([para hacer el logging más fácil](https://github.com/MarioProjects/Python-Slack-Logging)) deberemos añadir al sistema el [token](https://github.com/MarioProjects/Python-Slack-Logging) de nuestro espacio de trabajo al sistema:
+
+```sh
+echo "export SLACK_TOKEN='my-slack-token'" >> ~/.bashrc
+```
+
 ## Pytorch Library
 Es el corazón de la librería. Contiene ayuda para la creación de las distintas redes, para el entrenamiento de las mismas así como funciones de ayuda más genéricas.
 
