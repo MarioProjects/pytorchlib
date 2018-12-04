@@ -10,7 +10,6 @@ import os
 def get_hostname():
     return socket.gethostname()
 
-
 SLACK_TOKEN = os.environ.get('SLACK_TOKEN')
 if SLACK_TOKEN==None: print("No Slack Token found in system!")
 
