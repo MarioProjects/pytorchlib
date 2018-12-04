@@ -15,7 +15,7 @@ import albumentations
 import PIL
 
 CAT2CLASS = {"male": 0, "female": 1}
-IMG_BASE_SIZE = 100
+CLASS2CAT = {0 : "male", 1 : "female"}
 
 def load_img(path):
     return np.array(PIL.Image.open(path).convert('RGB'))
@@ -29,7 +29,7 @@ class FoldersDatasetVGGFace2(data.Dataset):
         cat2class: diccionario con claves clas clases y valor la codificacion
             de cada clase. Ejemplo {'perro':0, 'gato':1}
     """
-    def __init__(self, data_path, transforms=[], cat2class=[], normalization=""):
+    def __init__(self, data_path, bb_path, transforms=[], cat2class=[], normalization="", img_base_size=100):
         different_classes, all_paths, all_classes = [], [], []
         for path, subdirs, files in os.walk(data_path):
             for name in files:
@@ -50,10 +50,14 @@ class FoldersDatasetVGGFace2(data.Dataset):
 
         self.norm = normalization
         self.transforms = transforms
+        self.img_base_size = img_base_size
+        self.bounding_boxes = pd.read_csv(bb_path, index_col="NAME_ID")
 
 
     def __getitem__(self,index):
-        img = load_img(self.imgs_paths[index])
+        img_path = self.imgs_paths[index]
+        img_id = img_path.split("/")[-1][0:-4]
+        img = load_img(img_path)
 
         """ https://arxiv.org/pdf/1710.08092.pdf
         Training implementation details. All the networks are
@@ -74,14 +78,32 @@ class FoldersDatasetVGGFace2(data.Dataset):
         to 0.001
         """
 
-        # Primero debemos redimensionar la imagen para que el lado corto mida IMG_BASE_SIZE pixels
-        if img.shape[0] <= img.shape[1]: # Tiene menor o igual el alto
-            ancho = int((IMG_BASE_SIZE * img.shape[1]) / img.shape[0])
-            img = load_data.apply_img_albumentation(albumentations.Resize(IMG_BASE_SIZE, ancho), img)
-        else:
-            alto = int((IMG_BASE_SIZE * img.shape[0]) / img.shape[1])
-            img = load_data.apply_img_albumentation(albumentations.Resize(alto, IMG_BASE_SIZE), img)
+        # INFORMACION DE LOS BOUNDING BOXES
+        img_info_bb = self.bounding_boxes.loc[img_id]
+        sample_x = img_info_bb["X"]
+        extend_x = 0 if img_info_bb["X"] >=0 else -img_info_bb["X"]
 
+        sample_y = img_info_bb["Y"]
+        extend_y = 0 if img_info_bb["Y"] >=0 else -img_info_bb["Y"]
+
+        sample_w = img_info_bb["W"]
+        sample_h = img_info_bb["H"]
+
+        BLACK = [0,0,0]
+        if extend_x!=0 or extend_y!=0:
+            img = cv2.copyMakeBorder(img, int(extend_x/2), int(extend_x/2), int(extend_y/2), int(extend_y/2),
+                                            cv2.BORDER_CONSTANT, value=BLACK)
+            if extend_x!=0: sample_x = int(extend_x/2)
+            if extend_y!=0: sample_y = int(extend_y/2)
+        img = img[sample_y:sample_y+sample_h-extend_y, sample_x:sample_x+sample_w-extend_x]
+
+        # Debemos redimensionar la imagen para que el lado corto mida IMG_BASE_SIZE pixels
+        if img.shape[0] <= img.shape[1]: # Tiene menor o igual el alto
+            ancho = int((self.img_base_size * img.shape[1]) / img.shape[0])
+            img = load_data.apply_img_albumentation(albumentations.Resize(self.img_base_size, ancho), img)
+        else:
+            alto = int((self.img_base_size * img.shape[0]) / img.shape[1])
+            img = load_data.apply_img_albumentation(albumentations.Resize(alto, self.img_base_size), img)
         if self.transforms!=[]:
             for transform in self.transforms:
                 img = load_data.apply_img_albumentation(transform, img)
