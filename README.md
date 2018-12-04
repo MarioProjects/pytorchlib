@@ -43,7 +43,7 @@ Es el corazón de la librería. Contiene ayuda para la creación de las distinta
   - ***to_categorical***: Convierte un vector con las clases a una matriz binaria de clases (codificación one-hot).
   - ***get_optimizer***: Crea un optimizador que deseemos. Ayuda para cambiar el learning rate durante el entrenamiento.
   - ***get_current_lr***: Dado un optimizador nos devuelve su learning rate actual.
-  - ***anneal_lr***: Calcula siguiendo una función lineal el learning rate que debemos establecer al hacer learning rate annealing y si es el momento o no para cambiar el optimizador.
+  - ***anneal_lr_lineal***: Calcula siguiendo una función lineal el learning rate que debemos establecer al hacer learning rate annealing y si es el momento o no para cambiar el optimizador.
   - ***defrost_model_params***: 'Descongela' los parámetros de un modelo dado.
   - ***simple_target_creator***: Crea un vector lleno con el valor deseado. Util para crear vectores de targets.
   - ***train_simple_model***: Dados un modelo, su optimizador y una serie de datos de entrenamiento, realiza el forward a los datos y optimizados el modelo en función a función de coste especificada.

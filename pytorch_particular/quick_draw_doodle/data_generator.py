@@ -16,7 +16,7 @@ COLORS = [(255, 0, 0) , (255, 255, 0),  (128, 255, 0),  (0, 255, 0), (0, 255, 12
 
 
 
-def draw_cv2(raw_strokes, size=256, lw=6, time_color=True, color=False):
+def draw_cv2(raw_strokes, size=256, lw=4, time_color=True, color=False):
     if color:
         img = np.zeros((BASE_SIZE, BASE_SIZE, 3), np.uint8)
         for t, stroke in enumerate(raw_strokes):
@@ -40,7 +40,7 @@ def draw_cv2(raw_strokes, size=256, lw=6, time_color=True, color=False):
         else:
             return img
 
-def draw_cv2_trazos(raw_strokes, size=256, lw=6, time_color=True, color=False, trazos=0, trazo_actual=0):
+def draw_cv2_trazos(raw_strokes, size=256, lw=4, time_color=True, color=False, trazos=0, trazo_actual=0):
 
     # Calculo el numero de trazos totales del dibujo
     trazos_totales = 0
@@ -52,28 +52,50 @@ def draw_cv2_trazos(raw_strokes, size=256, lw=6, time_color=True, color=False, t
     inicio_puntos = trazo_actual*puntos_por_canal
     fin_puntos = inicio_puntos + puntos_por_canal
 
-    img = np.zeros((BASE_SIZE, BASE_SIZE), np.uint8)
+    if color: img = np.zeros((BASE_SIZE, BASE_SIZE, 3), np.uint8)
+    else: img = np.zeros((BASE_SIZE, BASE_SIZE), np.uint8)
+    
     trazos_actuales = 0
     for t, stroke in enumerate(raw_strokes):
         for i in range(len(stroke[0]) - 1):
             if(trazos_actuales>=inicio_puntos and trazos_actuales<fin_puntos):
-                color = 255 - min(t, 10) * 13 if time_color else 255
-                _ = cv2.line(img, (stroke[0][i], stroke[1][i]),
-                            (stroke[0][i + 1], stroke[1][i + 1]), color, lw)
+                if color:
+                    color = COLORS[min(t, len(COLORS)-1)]
+                    _ = cv2.line(img, (stroke[0][i], stroke[1][i]),
+                                    (stroke[0][i + 1], stroke[1][i + 1]), color, lw, lineType=cv2.LINE_AA)
+                else:
+                    color = 255 - min(t, 10) * 13 if time_color else 255
+                    _ = cv2.line(img, (stroke[0][i], stroke[1][i]),
+                                (stroke[0][i + 1], stroke[1][i + 1]), color, lw)
             trazos_actuales+=1
     if size != BASE_SIZE:
         return cv2.resize(img, (size, size))
     else:
         return img
 
-def image_generator_doodle(size, batch_size, ks, data_amount, transforms=[], norm="", lw=6, time_color=True, num_classes=340, color=False, trazos=[0]):
+def image_generator_doodle(size, batch_size, ks, data_amount, transforms=[], norm="", lw=4, time_color=True, num_classes=340, color=False, trazos=[0]):
     # data_amount = "1k" "10k" "50k"
     while True:
         for k in np.random.permutation(ks):
             filename = os.path.join(SHUFFLED_CSVs_DIR + data_amount + "/", 'train_k{}.csv.gz'.format(k))
             for df in pd.read_csv(filename, chunksize=batch_size):
                 df['drawing'] = df['drawing'].apply(json.loads)
-                if color:
+
+                if color and trazos[0]!=0:
+                    total_trazos = np.array(trazos).sum()
+                    x = np.zeros((len(df), size, size, (total_trazos+1)*3))
+
+                    for i, raw_strokes in enumerate(df.drawing.values):
+                        trazos_dibujados = 0
+                        for indx, trazos_actuales in enumerate(trazos):
+                            for trazo_actual in range(trazos_actuales):
+                                x[i, :, :, trazos_dibujados:(trazos_dibujados+3)] = draw_cv2_trazos(raw_strokes, size=size, lw=lw, time_color=time_color, color=color, trazos=trazos_actuales, trazo_actual=trazo_actual)
+                                trazos_dibujados+=3
+                            if (trazos_dibujados+3)==(total_trazos+1)*3:
+                                x[i, :, :, trazos_dibujados:(trazos_dibujados+3)] = draw_cv2(raw_strokes, size=size, lw=lw, time_color=time_color, color=color)
+                                trazos_dibujados+=3
+
+                elif color:
                     x = np.zeros((len(df), size, size, 3))
                     for i, raw_strokes in enumerate(df.drawing.values):
                         x[i, :, :, :] = draw_cv2(raw_strokes, size=size, lw=lw, time_color=time_color, color=color)
@@ -117,14 +139,29 @@ def image_generator_doodle(size, batch_size, ks, data_amount, transforms=[], nor
                 yield x, y
 
 
-def df_to_image_array_doodle(df, size, lw=6, time_color=True, transforms=[], norm="", color=False, trazos=[0]):
+def df_to_image_array_doodle(df, size, lw=4, time_color=True, transforms=[], norm="", color=False, trazos=[0]):
     df=df.copy(deep=True)
     df['drawing'] = df['drawing'].apply(json.loads)
 
-    if color:
+    if color and trazos[0]!=0:
+        total_trazos = np.array(trazos).sum()
+        x = np.zeros((len(df), size, size, (total_trazos+1)*3))
+
+        for i, raw_strokes in enumerate(df.drawing.values):
+            trazos_dibujados = 0
+            for indx, trazos_actuales in enumerate(trazos):
+                for trazo_actual in range(trazos_actuales):
+                    x[i, :, :, trazos_dibujados:(trazos_dibujados+3)] = draw_cv2_trazos(raw_strokes, size=size, lw=lw, time_color=time_color, color=color, trazos=trazos_actuales, trazo_actual=trazo_actual)
+                    trazos_dibujados+=3
+                if (trazos_dibujados+3)==(total_trazos+1)*3:
+                    x[i, :, :, trazos_dibujados:(trazos_dibujados+3)] = draw_cv2(raw_strokes, size=size, lw=lw, time_color=time_color, color=color)
+                    trazos_dibujados+=3
+
+    elif color:
         x = np.zeros((len(df), size, size, 3))
         for i, raw_strokes in enumerate(df.drawing.values):
             x[i, :, :, :] = draw_cv2(raw_strokes, size=size, lw=lw, time_color=time_color, color=color)
+
     elif trazos[0]!=0:
 
         total_trazos = np.array(trazos).sum()

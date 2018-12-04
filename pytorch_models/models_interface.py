@@ -10,6 +10,7 @@ from collections import OrderedDict
 from pytorchlib.pytorch_models.vgg import VGGModel
 from pytorchlib.pytorch_models.resnet import ResNetModel
 from pytorchlib.pytorch_models.seresnext import SeResNeXtModel
+from pytorchlib.pytorch_models.nasnet_a_large import NasNetALargeModel
 from pytorchlib.pytorch_models.mobilenetv2 import MobileNetv2Model
 from pytorchlib.pytorch_models.densenet import DenseNetModel
 from pytorchlib.pytorch_models.basic_nets import BasicModel
@@ -52,6 +53,9 @@ def select_model(model_name, model_config=[], flat_size=0, in_features=0, out_fe
     elif 'SeResNeXt' in model_name:
         my_model = SeResNeXtModel(model_config[0], model_config[1], input_channels, block_type=block_type, flat_size=flat_size, num_classes=out_features).cuda()
 
+    elif 'NASNetALarge' in model_name:
+        my_model = NasNetALargeModel(input_channels, num_classes=out_features, pretrained=False).cuda()
+
     elif 'Simple_MLP' in model_name:
         my_model = BasicModel(model_config, "MLP", in_features, out_type, input_channels=input_channels, dropout=dropout, std=ruido, batchnorm=batchnorm, default_act=default_act).cuda()
 
@@ -66,7 +70,7 @@ def select_model(model_name, model_config=[], flat_size=0, in_features=0, out_fe
                                 \ttransforms.Lambda(lambda x: torch.cat([x, x, x], 0))
                             ])\n"""
 
-        if input_channels: assert False, "ERROR: Imagenet models need to use color images! " + gray_transform
+        if input_channels!=3: assert False, "ERROR: Imagenet models need to use color images! " + gray_transform
 
         # https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html
         if "VGG11" == model_config: my_model = models.vgg11(pretrained=pretrained)
@@ -89,33 +93,37 @@ def select_model(model_name, model_config=[], flat_size=0, in_features=0, out_fe
         if "DENSENET161" == model_config: my_model = models.densenet161(pretrained=pretrained)
         if "DENSENET201" == model_config: my_model = models.densenet201(pretrained=pretrained)
 
-        # Si queremos reentrenar un modelo reemplazamos la ultima capa de salida
-        if out_features:
+        if "INCEPTIONV3" == model_config: 
+            my_model = models.inception_v3(pretrained=pretrained)
+            my_model.fc = nn.Linear(2048, out_features)
+        else:
+            # Si queremos reentrenar un modelo reemplazamos la ultima capa de salida
+            if out_features:
 
-            # Here, we need to freeze all the network except the final layer.
-            # We need to set requires_grad == False to freeze the parameters
-            # so that the gradients are not computed in backward().
-            for param in my_model.parameters():
-                param.requires_grad = False
+                # Here, we need to freeze all the network except the final layer.
+                # We need to set requires_grad == False to freeze the parameters
+                # so that the gradients are not computed in backward().
+                for param in my_model.parameters():
+                    param.requires_grad = False
 
-            # Parameters of newly constructed modules have requires_grad=True by default
-            if hasattr(my_model, 'classifier'):
-                if len(my_model.classifier._modules)!=0:
-                    num_ftrs = my_model.classifier._modules[str(len(my_model.classifier._modules)-1)].in_features
-                    my_model.classifier._modules[str(len(my_model.classifier._modules)-1)] = nn.Linear(num_ftrs, out_features)
-                elif len(my_model.classifier._modules)==0:
-                    num_ftrs = my_model.classifier.in_features
-                    my_model.classifier = nn.Linear(num_ftrs, out_features)
+                # Parameters of newly constructed modules have requires_grad=True by default
+                if hasattr(my_model, 'classifier'):
+                    if len(my_model.classifier._modules)!=0:
+                        num_ftrs = my_model.classifier._modules[str(len(my_model.classifier._modules)-1)].in_features
+                        my_model.classifier._modules[str(len(my_model.classifier._modules)-1)] = nn.Linear(num_ftrs, out_features)
+                    elif len(my_model.classifier._modules)==0:
+                        num_ftrs = my_model.classifier.in_features
+                        my_model.classifier = nn.Linear(num_ftrs, out_features)
+                    else: assert False, "Check the my_model last linear!"
+                elif hasattr(my_model, 'fc'):
+                    if len(my_model.fc._modules)!=0:
+                        num_ftrs = my_model.fc._modules[str(len(my_model.fc._modules)-1)].in_features
+                        my_model.fc._modules[str(len(my_model.fc._modules)-1)] = nn.Linear(num_ftrs, out_features)
+                    elif len(my_model.fc._modules)==0:
+                        num_ftrs = my_model.fc.in_features
+                        my_model.fc = nn.Linear(num_ftrs, out_features)
+                    else: assert False, "Check the my_model last linear!"
                 else: assert False, "Check the my_model last linear!"
-            elif hasattr(my_model, 'fc'):
-                if len(my_model.fc._modules)!=0:
-                    num_ftrs = my_model.fc._modules[str(len(my_model.fc._modules)-1)].in_features
-                    my_model.fc._modules[str(len(my_model.fc._modules)-1)] = nn.Linear(num_ftrs, out_features)
-                elif len(my_model.fc._modules)==0:
-                    num_ftrs = my_model.fc.in_features
-                    my_model.fc = nn.Linear(num_ftrs, out_features)
-                else: assert False, "Check the my_model last linear!"
-            else: assert False, "Check the my_model last linear!"
 
         # https://pytorch.org/docs/stable/torchvision/models.html
         print("""\nWARNING: The images (3, 224,244) have to be loaded in to a range
@@ -128,7 +136,7 @@ def select_model(model_name, model_config=[], flat_size=0, in_features=0, out_fe
     return my_model.cuda()
 
 
-def load_model(model_name, model_config=[], states_path="", model_path="", input_channels=0, dropout=0.0, ruido=0.0, growth_rate=0, in_features=0, flat_size=0, out_features=0, out_type='relu', block_type=None, last_pool_size=0, cardinality=32):
+def load_model(model_name, model_config=[], states_path="", model_path="", input_channels=0, dropout=0.0, ruido=0.0, growth_rate=0, in_features=0, flat_size=0, out_features=0, out_type='relu', block_type=None, last_pool_size=0, cardinality=32, data_parallel=False):
 
     if model_path!="" and os.path.exists(model_path):
         return torch.load(model_path)
@@ -136,7 +144,7 @@ def load_model(model_name, model_config=[], states_path="", model_path="", input
 
     if not os.path.exists(states_path): assert False, "Wrong Models_States Path!"
 
-    my_model = select_model(model_name, model_config=model_config, dropout=dropout, ruido=ruido, input_channels=input_channels, growth_rate=growth_rate, flat_size=flat_size, in_features=in_features, out_type=out_type, block_type=block_type, out_features=out_features, last_pool_size=last_pool_size, cardinality=cardinality)
+    my_model = select_model(model_name, model_config=model_config, dropout=dropout, ruido=ruido, input_channels=input_channels, growth_rate=growth_rate, flat_size=flat_size, in_features=in_features, out_type=out_type, block_type=block_type, out_features=out_features, last_pool_size=last_pool_size, cardinality=cardinality, data_parallel=data_parallel)
     model_state_dict = torch.load(states_path)
 
     # create new OrderedDict that does not contain `module.`

@@ -136,10 +136,10 @@ def models_average(outputs, scheme, vector_solution=True):
     elif scheme == "voting":
         # one_zeros es la matriz de salida transformada a 1 para la clase de mayor
         # probabilidad y 0s en el resto
-        one_zeros = (outputs[0].clone() == outputs[0].clone().max(axis=1)[:,None]).astype(int)
+        one_zeros = (outputs[0].clone() == outputs[0].clone().max(dim=1)[:,None]).astype(int)
         result = one_zeros
         for output in outputs[1:]:
-            one_zeros = (output == output.max(axis=1)[:,None]).astype(int)
+            one_zeros = (output == output.max(dim=1)[:,None]).astype(int)
             result += one_zeros.clone()
 
     else: assert False, "Ivalid model average scheme!"

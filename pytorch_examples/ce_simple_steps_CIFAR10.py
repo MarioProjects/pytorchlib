@@ -141,7 +141,7 @@ for indx,(epochs_now, lr_now) in enumerate(zip(epochs_steps, lr_steps)):
             best_model_state_dict = model.state_dict()
         
         # Decrementamos el learning rate solo para cuando vamos a hacer el ultimo set de epochs -> (indx+1) == len(epochs_steps)
-        lr_new, model_optimizer = utils_training.anneal_lr([model], lr_now, epochs_now, epoch, optimizador, flag=apply_lr_anneal_lineal[indx])
+        lr_new, model_optimizer = utils_training.anneal_lr_lineal([model], lr_now, epochs_now, epoch, optimizador, flag=apply_lr_anneal_lineal[indx])
 
 
 

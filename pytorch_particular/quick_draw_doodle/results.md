@@ -22,7 +22,23 @@
 |   ResNet    |     Basic18_Standard     |    64x64    |            No            | All - 200000 epoch |    79.26   |    92.34   |    0.893    | >>> I_Retrain TRAZOS3y2
 ----------------------> (Basic18_Standard) Al utilizar un batch mayor (512) el accuracy se ve reducido |    78.57   |    91.57   |    0.895    |
 |   SENet*    |      PreAct34_Small      |    64x64    | HFlip & ShiftScaleRotate | 50k - 145000 epoch |    77.60   |    90.65   |             |
+|   SENet     |    PreAct50_Standard     |    64x64    |            No            | All - 200000 epoch |    79.57   |    92.34   |    ?????    | >>> Implicit retrain 0.1
 |   SENet     |  PreAct50_Standard_Color |    64x64    |            No            | All - 200000 epoch |    80.37   |    93.03   |    0.914    | >>> Implicit retrain 0.1
+|   SENet     |     PreAct50_Standard    |    64x64    |            No            | All - 200000 epoch |    80.26   |    93.03   |    0.909    | >>> I_Retrain TRAZOS3
+|   SENet     |     PreAct50_Standard    |    64x64    |            No            | All - 200000 epoch |    80.43   |    92.83   |    0.911    | >>> I_Retrain TRAZOS3 COLOR
+|   SENet     |     PreAct50_Standard    |    64x64    |            No            | All - 350000 epoch |    83.45   |    94.51   |    0.934    | >>> BigTrain TRAZOS3 COLOR
+|   SENet     |     PreAct50_Standard    |    64x64    |            No            | All - 200000 epoch |    79.25   |    92.25   |    0.904    | >>> I_Retrain Color MaxPool
+|   SENet     |     PreAct50_Standard    |    64x64    |            No            | All - 200000 epoch |    79.94   |    92.77   |    0.909    | >>> I_Retrain Color LW4
+|   SENet     |  PreAct50_StandardColor  |    64x64    |            No            | All - 200000 epoch |    80.62   |    93.05   |    0.911    | >>> LR FIJO 0.1 - 150 epochs
+|   SENet     |  PreAct50_StandardColor  |    64x64    |            No            | All - 200000 epoch |    82.68   |    93.85   |    0.929    | >>> LR FIJO 0.1 -> 0.018LR - 150 epochs
+|   SENet     |  PreAct50_StandardColor  |    64x64    |            No            | All - 300000 epoch |    83.20   |    93.97   |    0.932    | >>> LR FIJO 0.1 -> 0.018 -> 0.004899 - 54 epochs
+|   SENet     |  PreAct50_StandardColor  |    64x64    |            No            | All - 300000 epoch |    83.54   |    93.97   |    0.932    | >>> LR FIJO 0.1 -> 0.018 -> 0.001680 - 78 epochs
+|   SENet     |  PreAct50_StandardColor  |    64x64    |            No            | All - 300000 epoch |    -----   |    -----   |    -----    | >>> LR FIJO 0.1 -> 0.018LR -> - 150 epochs
+|   SENet     |  PreAct50_StandardColor  |    64x64    |            No            | All - 200000 epoch |    82.14   |    93.57   |    0.927    | >>> Mixup 0.2
+|   SENet     |  PreAct50_StandardColor  |    64x64    |            No            | All - 200000 epoch |    82.69   |    93.89   |    ?????    | >>> Mixup 0.1
+----------------------------------------------------------------------------------------------------------------------------->   |    0.936    | >>> ENSEMBLE 1
+----------------------------------------------------------------------------------------------------------------------------->   |    0.936    | >>> ENSEMBLE 2
+----------------------------------------------------------------------------------------------------------------------------->   |    0.936    | >>> ENSEMBLE 3
 ------------------------------------------> Probando PreAct50_Small_Color con modelo mejor Acc1 y modelo mejor ACC3 obtienen mismo LB 0.914
 |  SEResNext  |     Bottle50_Standard    |    64x64    |            No            | All - 200000 epoch |    76.91   |    90.97   |    0.885    | >>> Implicit retrain 0.1
 |  SEResNext  |     Bottle50_Standard    |    64x64    |            No            | All - 200000 epoch |    77.74   |    91.29   |    0.882    | >>> I_Retrain TRAZOS3
@@ -30,6 +46,7 @@
 | MobileNetv2*|         Standard         |    64x64    |           HFlip          | 50k - 145000 epoch |    76.65   |    90.57   |             | >>> scheduler
 | MobileNetv2*|         Standard         |    64x64    |            No            | 50k - 200000 epoch |    77.34   |    91.74   |    0.883    | >>> steps lr 0.35, 0.1 ...
 |    VGG*     |      QDrawLargeVGG       |   224x224   |            No            | 50k - 200000 epoch |    71.65   |    86.57   |             |
+|  IMAGENET   |        INCEPTIONV3       |   299x299   |            No            | All - 200000 epoch |    79.25   |    91.77   |             |
 
 
 -* Pytorchlib old version
@@ -38,7 +55,8 @@
 
 |   Model Type  |     Configuration    | Images Type |     Data Augmentation    |     Data Usage     |    GPU    |
 |:-------------:|:--------------------:|:-----------:|:------------------------:|:------------------:|:---------:|
-|     SeNet     |  PreAct50_Standard   |    64x64    |            No            | All - 200000 epoch |    P12    | >>> Implicit retrain 0.1
+|     SeNet     |  PreAct50_Standard   |    64x64    |            No            | All - 200000 epoch |    P12    | >>> Batch cumulative 512 lr 0.15...
+se-resnext-50 (lw 3) -> gpu6
 ->> GPU10 Mixup res18
 
 
