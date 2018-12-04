@@ -4,6 +4,10 @@ from torch import nn, optim
 import torch.nn.functional as F
 from slackclient import SlackClient
 from torch.autograd.variable import Variable
+import socket
+
+def get_hostname():
+    return socket.gethostname()
 
 def slack_message(message, channel):
     token = 'xoxp-458177397862-456198240913-464006277364-a7557a18c11f5e99ca9ce33deacbefc4'
