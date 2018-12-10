@@ -150,6 +150,7 @@ def evaluate_accuracy_models_generator(models, data, max_data=0, topk=(1,), targ
             # calculo predicciones para el error de test de todos los modelos
             # Tengo que hacer el forward para cada modelo y ver que clases acierta
             for model_indx, model in enumerate(models):
+                if(model.training==True): model.eval()
                 if net_type == "fully-connected":
                     model_out = model.forward(Variable(batch.float().view(batch.shape[0], -1).cuda()))
                 elif net_type == "convolutional":
@@ -201,6 +202,7 @@ def evaluate_accuracy_loss_models_generator(models, data, loss, max_data=0, topk
             # calculo predicciones para el error de test de todos los modelos
             # Tengo que hacer el forward para cada modelo y ver que clases acierta
             for model_indx, model in enumerate(models):
+                if(model.training==True): model.eval()
                 if net_type == "fully-connected":
                     model_out = model.forward(Variable(batch.float().view(batch.shape[0], -1).cuda()))
                 elif net_type == "convolutional":
@@ -279,6 +281,7 @@ def evaluate_accuracy_models_data(models, X_data, y_data, batch_size=100, max_da
             # calculo predicciones para el error de test de todos los modelos
             # Tengo que hacer el forward para cada modelo y ver que clases acierta
             for model_indx, model in enumerate(models):
+                if(model.training==True): model.eval()
                 if net_type == "fully-connected":
                     model_out = model.forward(Variable(batch.float().view(batch.shape[0], -1).cuda()))
                 elif net_type == "convolutional":
@@ -335,6 +338,7 @@ def evaluate_accuracy_loss_models_data(models, X_data, y_data, loss, batch_size=
             # calculo predicciones para el error de test de todos los modelos
             # Tengo que hacer el forward para cada modelo y ver que clases acierta
             for model_indx, model in enumerate(models):
+                if(model.training==True): model.eval()
                 #if(model.training==True): model.eval()
 
                 if net_type == "fully-connected":
