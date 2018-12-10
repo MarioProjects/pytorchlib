@@ -32,6 +32,13 @@ Además, si deseamos utilizar la funcionalidad de Slack ([para hacer el logging 
 echo "export SLACK_TOKEN='my-slack-token'" >> ~/.bashrc
 ```
 
+Por último, pero no menos importante, podemos hacer que nuestra libreria sea accesible desde cualquier lugar. Para ello tomamos la ruta donde esta nuestra carpeta pytorchlib y:
+
+```sh
+echo "export PYTHONPATH='${PYTHONPATH}:/media/mario/Almacen/Drive/DeepLearning/'"  >> ~/.bashrc
+```
+
+
 ## Pytorch Library
 Es el corazón de la librería. Contiene ayuda para la creación de las distintas redes, para el entrenamiento de las mismas así como funciones de ayuda más genéricas.
 
