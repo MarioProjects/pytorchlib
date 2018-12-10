@@ -51,7 +51,7 @@ def select_model(model_name, model_config=[], flat_size=0, in_features=0, out_fe
         my_model = SENetModel(model_config[0], model_config[1], block_type, input_channels, flat_size=flat_size, num_classes=out_features).cuda()
     
     elif 'SeResNeXt' in model_name:
-        my_model = SeResNeXtModel(model_config[0], model_config[1], input_channels, block_type=block_type, flat_size=flat_size, num_classes=out_features).cuda()
+        my_model = SeResNeXtModel(model_config[0], model_config[1], input_channels, block_type=block_type, flat_size=flat_size, num_classes=out_features, pretrained=pretrained).cuda()
 
     elif 'NASNetALarge' in model_name:
         my_model = NasNetALargeModel(input_channels, num_classes=out_features, pretrained=False).cuda()
