@@ -458,45 +458,6 @@ def predictions_models_data(models, X_data, batch_size=100, net_type="convolutio
     return outs_models
 
 
-def predictions_models_generator(models, datagen, total_samples, batch_size=100, net_type="convolutional"):
-    """Computes the accuracy (sobre 1) over the k top predictions for the specified values of k"""
-    # Si paso un modelo y topk(1,5) -> acc1, acc5,
-    # Si paso dos modelo y topk(1,5) -> m1_acc1, m1_acc5, m2_acc1, m2_acc5
-    with torch.no_grad():
-
-        outs_models, total_samples = [torch.zeros(0,0).cuda()]*len(models), 0
-        for batch_idx, (batch) in enumerate(datagen):
-
-            # Debemos comprobar que no nos pasamos con el batch_size
-            if total_samples + batch_size >= total_samples: batch_size = total_samples - total_samples
-
-            batch = X_data[total_samples:total_samples+batch_size]
-
-            # calculo predicciones para el error de test de todos los modelos
-            # Tengo que hacer el forward para cada modelo y ver que clases acierta
-            for model_indx, model in enumerate(models):
-                if net_type == "fully-connected":
-                    model_out = model.forward(Variable(batch.float().view(batch.shape[0], -1).cuda()))
-                elif net_type == "convolutional":
-                    model_out = model.forward(Variable(batch.float().cuda()))
-                else: assert False, "Please define your model type!"
-
-                # Algunos modelos devuelven varias salidas como pueden ser la capa
-                # reshape y los logits, etc... Por lo que se establece el standar
-                # de que la ultima salida sean los logits del modelo para hacer la clasificacion
-                if type(model_out) is list or type(model_out) is tuple:
-                    model_out = model_out[-1]
-
-                outs_models[0]=torch.cat((outs_models[0], model_out))
-
-            total_samples+=batch_size
-            if total_samples == total_samples: break
-
-    #accuracies = list(((np.array(correct_models) * 1.0) / total_samples))
-    if len(outs_models) == 1: return outs_models[0]
-    return outs_models
-
-
 # INPUTS: output have shape of [batch_size, category_count]
 #    and target in the shape of [batch_size] * there is only one true class for each sample
 # topk is tuple of classes to be included in the precision

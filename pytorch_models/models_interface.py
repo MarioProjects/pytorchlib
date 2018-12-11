@@ -15,6 +15,7 @@ from pytorchlib.pytorch_models.mobilenetv2 import MobileNetv2Model
 from pytorchlib.pytorch_models.densenet import DenseNetModel
 from pytorchlib.pytorch_models.basic_nets import BasicModel
 from pytorchlib.pytorch_models.senet import SENetModel
+from pytorchlib.pytorch_models.senet_pretrained import SENetPretrainedModel
 
 def select_model(model_name, model_config=[], flat_size=0, in_features=0, out_features=0, dropout=0.0, ruido=0.0, input_channels=0, growth_rate=0, out_type='', batchnorm=True, default_act="relu", data_parallel=False, pretrained=True, block_type=None, last_pool_size=0, cardinality=32):
     """ Model instantiator
@@ -48,7 +49,10 @@ def select_model(model_name, model_config=[], flat_size=0, in_features=0, out_fe
         my_model = MobileNetv2Model(model_config, input_channels, out_features, flat_size, last_pool_size).cuda()
 
     elif 'SENet' in model_name:
-        my_model = SENetModel(model_config[0], model_config[1], block_type, input_channels, flat_size=flat_size, num_classes=out_features).cuda()
+        if pretrained:
+            my_model = SENetPretrainedModel(model_config, out_features, "imagenet")
+        else:
+            my_model = SENetModel(model_config[0], model_config[1], block_type, input_channels, flat_size=flat_size, num_classes=out_features).cuda()
     
     elif 'SeResNeXt' in model_name:
         my_model = SeResNeXtModel(model_config[0], model_config[1], input_channels, block_type=block_type, flat_size=flat_size, num_classes=out_features, pretrained=pretrained).cuda()
