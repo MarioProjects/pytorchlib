@@ -447,12 +447,11 @@ def se_resnext101_32x4d(num_classes=1000, pretrained='imagenet'):
 def SENetPretrainedModel(model, num_classes, pretrained):
     model = "_".join(model)
     if model=="senet154": model = senet154(1000, pretrained)
-    elif model=="se_resnet50": model = senet154(1000, pretrained)
-    elif model=="se_resnet101": model = senet154(1000, pretrained)
-    elif model=="se_resnet152": model = senet154(1000, pretrained)
-    elif model=="se_resnext50_32x4d": model = senet154(1000, pretrained)
-    elif model=="se_resnext50_32x4d": model = senet154(1000, pretrained)
-    elif model=="se_resnext101_32x4d": model = senet154(1000, pretrained)
+    elif model=="se_resnet50": model = se_resnet50(1000, pretrained)
+    elif model=="se_resnet101": model = se_resnet101(1000, pretrained)
+    elif model=="se_resnet152": model = se_resnet152(1000, pretrained)
+    elif model=="se_resnext50_32x4d": model = se_resnext50_32x4d(1000, pretrained)
+    elif model=="se_resnext101_32x4d": model = se_resnext101_32x4d(1000, pretrained)
     else: assert False, "No model with that name!"
     model.last_linear = nn.Linear(model.last_linear.in_features, num_classes)
     return model
