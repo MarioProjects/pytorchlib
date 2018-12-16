@@ -494,6 +494,89 @@ def topk_accuracy(output, target, topk=(1,)):
             res.append(correct[:k].view(-1).float().sum(0, keepdim=True))
         return res
 
+
+##########################################################################################################
+##########################################################################################################
+##########################################################################################################
+
+def findLR(model, optimizer, criterion, trainloader, final_value=10, init_value=1e-8):
+    #https://medium.com/coinmonks/training-neural-networks-upto-10x-faster-3246d84caacd
+    '''
+      findLR plots the graph for the optimum learning rates for the model with the
+      corresponding dataset.
+      The technique is quite simple. For one epoch,
+      1. Start with a very small learning rate (around 1e-8) and increase the learning rate linearly.
+      2. Plot the loss at each step of LR.
+      3. Stop the learning rate finder when loss stops going down and starts increasing.
+
+      A graph is created with the x axis having learning rates and the y axis
+      having the losses.
+
+      Arguments:
+      1. model -  (torch.nn.Module) The deep learning pytorch network.
+      2. optimizer: (torch.optim) The optimiser for the model eg: SGD,CrossEntropy etc
+      3. criterion: (torch.nn) The loss function that is used for the model.
+      4. trainloader: (torch.utils.data.DataLoader) The data loader that loads data in batches for input into model
+      5. final_value: (float) Final value of learning rate
+      6. init_value: (float) Starting learning rate.
+
+      Returns:
+       learning rates used and corresponding losses
+
+
+    '''
+    model.train() # setup model for training configuration
+
+    num = len(trainloader) - 1 # total number of batches
+    mult = (final_value / init_value) ** (1/num)
+
+    losses = []
+    lrs = []
+    best_loss = 0.
+    avg_loss = 0.
+    beta = 0.98 # the value for smooth losses
+    lr = init_value
+
+    for batch_num, (inputs, targets) in enumerate(trainloader):
+
+
+        optimizer.param_groups[0]['lr'] = lr
+
+        batch_num += 1 # for non zero value
+        inputs, targets = inputs.cuda(), targets.cuda() # convert to cuda for GPU usage
+        optimizer.zero_grad() # clear gradients
+        outputs = model(inputs) # forward pass
+        loss = criterion(outputs, targets) # compute loss
+
+        #Compute the smoothed loss to create a clean graph
+        avg_loss = beta * avg_loss + (1-beta) *loss.item()
+        smoothed_loss = avg_loss / (1 - beta**batch_num)
+
+        #Record the best loss
+        if smoothed_loss < best_loss or batch_num==1:
+            best_loss = smoothed_loss
+
+        # append loss and learning rates for plotting
+        lrs.append(math.log10(lr))
+        losses.append(smoothed_loss)
+
+        # Stop if the loss is exploding
+        if batch_num > 1 and smoothed_loss > 4 * best_loss:
+            break
+
+        # backprop for next step
+        loss.backward()
+        optimizer.step()
+
+        # update learning rate
+        lr = mult*lr
+
+    #plt.xlabel('Learning Rates')
+    #plt.ylabel('Losses')
+    #plt.plot(lrs,losses)
+    #plt.show()
+    return lrs, losses
+
 ##########################################################################################################
 ##########################################################################################################
 ##########################################################################################################
