@@ -499,7 +499,7 @@ def topk_accuracy(output, target, topk=(1,)):
 ##########################################################################################################
 ##########################################################################################################
 
-def findLR(model, optimizer, criterion, trainloader, final_value=10, init_value=1e-8):
+def findLR(model, optimizer, criterion, trainloader, final_value=10, init_value=1e-8, verbose=1):
     #https://medium.com/coinmonks/training-neural-networks-upto-10x-faster-3246d84caacd
     '''
       findLR plots the graph for the optimum learning rates for the model with the
@@ -539,9 +539,8 @@ def findLR(model, optimizer, criterion, trainloader, final_value=10, init_value=
 
     for batch_num, (inputs, targets) in enumerate(trainloader):
 
-
+        if verbose==1: print("Testint LR: {}".format(lr))
         optimizer.param_groups[0]['lr'] = lr
-
         batch_num += 1 # for non zero value
         inputs, targets = inputs.cuda(), targets.cuda() # convert to cuda for GPU usage
         optimizer.zero_grad() # clear gradients
