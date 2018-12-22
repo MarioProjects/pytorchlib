@@ -545,7 +545,7 @@ def findLR(model, optimizer, criterion, trainloader, final_value=10, init_value=
         inputs, targets = inputs.cuda(), targets.cuda() # convert to cuda for GPU usage
         optimizer.zero_grad() # clear gradients
         outputs = model(inputs) # forward pass
-        loss = criterion(outputs, targets) # compute loss
+        loss = criterion(outputs, targets.long().cuda()) # compute loss
 
         #Compute the smoothed loss to create a clean graph
         avg_loss = beta * avg_loss + (1-beta) *loss.item()
@@ -688,3 +688,50 @@ def mixup_criterion(criterion, pred, y_a, y_b, lam):
 # outputs = model(inputs)
 # loss = mixup_criterion(loss_ce, outputs, targets_a, targets_b, lam)
 # total_loss += loss.item()
+
+
+''' ######################################################################## '''
+''' #############################  CUTOUT ################################## '''
+''' ######################################################################## '''
+# https://github.com/uoguelph-mlrg/Cutout
+# Para usarlo si estamos usando albumentations añadir otro transform separado que sea
+# por ejemplo transforms_torchvision y a traves de ese lo usamos como self.torchvision_transform(feature)
+# Hay un ejemplo en el dataloader de LFW -> data_generator.py -> NPDatasetLFW
+class Cutout(object):
+    """Randomly mask out one or more patches from an image.
+    Args:
+        n_holes (int): Number of patches to cut out of each image.
+        length (int): The length (in pixels) of each square patch.
+    """
+    def __init__(self, n_holes, length):
+        self.n_holes = n_holes
+        self.length = length
+
+    def __call__(self, img):
+        """
+        Args:
+            img (Tensor): Tensor image of size (C, H, W).
+        Returns:
+            Tensor: Image with n_holes of dimension length x length cut out of it.
+        """
+        h = img.size(1)
+        w = img.size(2)
+
+        mask = np.ones((h, w), np.float32)
+
+        for n in range(self.n_holes):
+            y = np.random.randint(h)
+            x = np.random.randint(w)
+
+            y1 = np.clip(y - self.length // 2, 0, h)
+            y2 = np.clip(y + self.length // 2, 0, h)
+            x1 = np.clip(x - self.length // 2, 0, w)
+            x2 = np.clip(x + self.length // 2, 0, w)
+
+            mask[y1: y2, x1: x2] = 0.
+
+        mask = torch.from_numpy(mask)
+        mask = mask.expand_as(img)
+        img = img * mask
+
+        return img
