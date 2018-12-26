@@ -576,6 +576,12 @@ def findLR(model, optimizer, criterion, trainloader, final_value=10, init_value=
     #plt.show()
     return lrs, losses
 
+def get_total_parameters(model):
+    return sum(p.numel() for p in model.parameters())
+
+def get_trainable_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
 ##########################################################################################################
 ##########################################################################################################
 ##########################################################################################################
