@@ -111,6 +111,8 @@ def train_simple_model(model, data, target, loss, optimizer, out_pos=-1, target_
 
     if target_one_hot: _, target = target.max(dim=1)
 
+    n_correct = (torch.max(model_out, 1)[1].view(target.size()) == target).sum().item()
+
     # Calculo el error obtenido
     # Cuidado con la codificacion one hot! https://discuss.pytorch.org/t/runtimeerror-multi-target-not-supported-newbie/10216/8
     try: cost = loss(model_out, target)
@@ -127,7 +129,7 @@ def train_simple_model(model, data, target, loss, optimizer, out_pos=-1, target_
         optimizer.step()
         optimizer.zero_grad()
 
-    return cost.item()
+    return n_correct, cost.item()
 
 
 def evaluate_accuracy_models_generator(models, data, max_data=0, topk=(1,), target_one_hot=False, net_type="convolutional"):
