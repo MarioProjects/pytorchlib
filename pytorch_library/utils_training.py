@@ -94,7 +94,7 @@ def simple_target_creator(samples, value):
     return Variable(torch.ones(samples, 1)).type(torch.cuda.FloatTensor)*value
 
 
-def train_simple_model(model, data, target, loss, optimizer, out_pos=-1, target_one_hot=False, net_type="convolutional", do_step=True):
+def train_simple_model(model, data, target, loss, optimizer, out_pos=-1, target_one_hot=False, net_type="convolutional", do_step=True, get_corrects=False):
     # Losses: https://pytorch.org/docs/stable/nn.html
     if(model.training==False): model.train()
 
@@ -129,7 +129,8 @@ def train_simple_model(model, data, target, loss, optimizer, out_pos=-1, target_
         optimizer.step()
         optimizer.zero_grad()
 
-    return n_correct, cost.item()
+    if get_corrects: return n_correct, cost.item()
+    else: return cost.item()
 
 
 def evaluate_accuracy_models_generator(models, data, max_data=0, topk=(1,), target_one_hot=False, net_type="convolutional"):
