@@ -741,6 +741,6 @@ class Cutout(object):
 
         mask = torch.from_numpy(mask)
         mask = mask.expand_as(img)
-        img = img * mask
+        img = img.cuda() * mask.cuda()
 
         return img
