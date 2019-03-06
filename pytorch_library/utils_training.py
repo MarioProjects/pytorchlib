@@ -744,3 +744,48 @@ class Cutout(object):
         img = img.cuda() * mask.cuda()
 
         return img
+
+class BatchCutout(object):
+    """Randomly mask out one or more patches from an image.
+    Args:
+        n_holes (int): Number of patches to cut out of each image.
+        length (int): The length (in pixels) of each square patch.
+    """
+    def __init__(self, n_holes, length):
+        self.n_holes = n_holes
+        self.length = length
+
+    def __call__(self, imgs):
+        """
+        Args:
+            img (Tensor): Tensor image of size (Batch, C, H, W).
+        Returns:
+            Tensor: Images with n_holes of dimension length x length cut out of it.
+        """
+
+        h = imgs.size(2)
+        w = imgs.size(3)
+
+        outputs = torch.empty(imgs.shape)
+        for index, img in enumerate(imgs):
+
+            mask = np.ones((h, w), np.float32)
+
+            for n in range(self.n_holes):
+                y = np.random.randint(h)
+                x = np.random.randint(w)
+
+                y1 = np.clip(y - self.length // 2, 0, h)
+                y2 = np.clip(y + self.length // 2, 0, h)
+                x1 = np.clip(x - self.length // 2, 0, w)
+                x2 = np.clip(x + self.length // 2, 0, w)
+
+                mask[y1: y2, x1: x2] = 0.
+
+            mask = torch.from_numpy(mask)
+            mask = mask.expand_as(img)
+            #imgs[index] = img.cuda() * mask.cuda()
+            outputs[index] = img.cuda() * mask.cuda()
+
+        #return imgs
+        return outputs.cuda()
